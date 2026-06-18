@@ -14,6 +14,9 @@ public abstract class BucketStoreContractTests
     protected static WriteOp Put(string key, long expectedVersion, byte[] value) =>
         new(key, expectedVersion, "cse-v1", value, Delete: false);
 
+    protected static WriteOp Del(string key, long expectedVersion) =>
+        new(key, expectedVersion, "cse-v1", Array.Empty<byte>(), Delete: true);
+
     [Fact]
     public async Task Head_of_fresh_bucket_is_seq0_and_empty_hash()
     {
@@ -144,5 +147,40 @@ public abstract class BucketStoreContractTests
         Assert.Equal(2, r.Conflicts.Count);
         Assert.Contains(r.Conflicts, c => c.Key == "a");
         Assert.Contains(r.Conflicts, c => c.Key == "b");
+    }
+
+    [Fact]
+    public async Task Delete_creates_a_versioned_tombstone()
+    {
+        var s = await NewStoreAsync();
+        await s.CommitBatchAsync(Bucket, new[] { Put("k", 0, new byte[] { 7 }) }); // v1
+
+        var r = await s.CommitBatchAsync(Bucket, new[] { Del("k", 1) });
+        Assert.True(r.Committed);
+        Assert.Equal(2, r.NewSeq);
+
+        var e = Assert.Single(await s.GetBatchAsync(Bucket, new[] { "k" }));
+        Assert.True(e.Deleted);
+        Assert.Equal(2, e.Version);
+        Assert.Empty(e.Value);
+    }
+
+    [Fact]
+    public async Task Tombstone_still_participates_in_cas()
+    {
+        var s = await NewStoreAsync();
+        await s.CommitBatchAsync(Bucket, new[] { Put("k", 0, new byte[] { 7 }) }); // v1
+        await s.CommitBatchAsync(Bucket, new[] { Del("k", 1) });                   // v2 tombstone
+
+        // Re-creating the key must expect the tombstone's version (2), not 0.
+        var stale = await s.CommitBatchAsync(Bucket, new[] { Put("k", 0, new byte[] { 8 }) });
+        Assert.False(stale.Committed);
+        Assert.Equal(2, Assert.Single(stale.Conflicts).CurrentVersion);
+
+        var ok = await s.CommitBatchAsync(Bucket, new[] { Put("k", 2, new byte[] { 8 }) });
+        Assert.True(ok.Committed);
+        var e = Assert.Single(await s.GetBatchAsync(Bucket, new[] { "k" }));
+        Assert.False(e.Deleted);
+        Assert.Equal(3, e.Version);
     }
 }
