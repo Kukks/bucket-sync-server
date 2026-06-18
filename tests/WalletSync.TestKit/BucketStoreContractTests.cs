@@ -183,4 +183,54 @@ public abstract class BucketStoreContractTests
         Assert.False(e.Deleted);
         Assert.Equal(3, e.Version);
     }
+
+    [Fact]
+    public async Task Diff_returns_changes_in_seq_order_since_cursor()
+    {
+        var s = await NewStoreAsync();
+        await s.CommitBatchAsync(Bucket, new[] { Put("a", 0, new byte[] { 1 }) }); // seq 1
+        await s.CommitBatchAsync(Bucket, new[] { Put("b", 0, new byte[] { 2 }) }); // seq 2
+
+        var page = await s.DiffAsync(Bucket, sinceSeq: 0, limit: 10);
+        Assert.Equal(new[] { "a", "b" }, page.Entries.Select(e => e.Key).ToArray());
+        Assert.Equal(2, page.NextSeq);
+        Assert.False(page.HasMore);
+
+        var tail = await s.DiffAsync(Bucket, sinceSeq: 1, limit: 10);
+        Assert.Equal("b", Assert.Single(tail.Entries).Key);
+        Assert.Equal(2, tail.NextSeq);
+    }
+
+    [Fact]
+    public async Task Diff_limit_counts_commits_and_never_splits_a_batch()
+    {
+        var s = await NewStoreAsync();
+        // seq 1 = a 3-key batch; seq 2 = a 1-key batch.
+        await s.CommitBatchAsync(Bucket, new[] { Put("a", 0, new byte[] { 1 }), Put("b", 0, new byte[] { 2 }), Put("c", 0, new byte[] { 3 }) });
+        await s.CommitBatchAsync(Bucket, new[] { Put("d", 0, new byte[] { 4 }) });
+
+        // limit: 1 commit -> must return ALL of seq 1 (3 entries), not 1 entry.
+        var page = await s.DiffAsync(Bucket, sinceSeq: 0, limit: 1);
+        Assert.Equal(3, page.Entries.Count);
+        Assert.All(page.Entries, e => Assert.Equal(1, e.Seq));
+        Assert.Equal(1, page.NextSeq);
+        Assert.True(page.HasMore);
+
+        // resume from NextSeq -> the second commit.
+        var page2 = await s.DiffAsync(Bucket, sinceSeq: page.NextSeq, limit: 1);
+        Assert.Equal("d", Assert.Single(page2.Entries).Key);
+        Assert.Equal(2, page2.NextSeq);
+        Assert.False(page2.HasMore);
+    }
+
+    [Fact]
+    public async Task Diff_with_no_changes_returns_empty_and_holds_cursor()
+    {
+        var s = await NewStoreAsync();
+        await s.CommitBatchAsync(Bucket, new[] { Put("a", 0, new byte[] { 1 }) });
+        var page = await s.DiffAsync(Bucket, sinceSeq: 1, limit: 10);
+        Assert.Empty(page.Entries);
+        Assert.Equal(1, page.NextSeq);
+        Assert.False(page.HasMore);
+    }
 }
