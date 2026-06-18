@@ -259,4 +259,25 @@ public abstract class BucketStoreContractTests
         await s2.CommitBatchAsync(Bucket, new[] { Put("k", 0, new byte[] { 2 }) });
         Assert.NotEqual((await s1.GetHeadAsync(Bucket)).ContentHash, (await s2.GetHeadAsync(Bucket)).ContentHash);
     }
+
+    [Fact]
+    public async Task GetBatch_returns_existing_including_tombstones_and_omits_missing()
+    {
+        var s = await NewStoreAsync();
+        await s.CommitBatchAsync(Bucket, new[] { Put("a", 0, new byte[] { 1 }), Put("b", 0, new byte[] { 2 }) });
+        await s.CommitBatchAsync(Bucket, new[] { Del("b", 1) }); // b -> tombstone
+
+        var got = await s.GetBatchAsync(Bucket, new[] { "a", "b", "missing" });
+        Assert.Equal(2, got.Count);
+        Assert.Contains(got, e => e.Key == "a" && !e.Deleted);
+        Assert.Contains(got, e => e.Key == "b" && e.Deleted);
+        Assert.DoesNotContain(got, e => e.Key == "missing");
+    }
+
+    [Fact]
+    public async Task GetBatch_on_empty_key_list_returns_empty()
+    {
+        var s = await NewStoreAsync();
+        Assert.Empty(await s.GetBatchAsync(Bucket, Array.Empty<string>()));
+    }
 }
