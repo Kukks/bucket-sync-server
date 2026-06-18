@@ -35,8 +35,11 @@ public sealed class InProcChangeNotifier : IChangeNotifier
         }
         finally
         {
+            // Remove only this subscriber. We deliberately do NOT prune the now-possibly-empty
+            // per-bucket dict: a check-then-remove on _subs would race a concurrently-arriving
+            // subscriber (GetOrAdd sees the empty set, then we delete it) and orphan its channel.
+            // Leaving an empty inner dict is a negligible memory cost.
             set.TryRemove(id, out _);
-            if (set.IsEmpty) _subs.TryRemove(bucketId, out _);
         }
     }
 }
