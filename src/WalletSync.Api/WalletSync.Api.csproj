@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <ItemGroup>
+    <ProjectReference Include="..\WalletSync.Core\WalletSync.Core.csproj" />
+    <ProjectReference Include="..\WalletSync.Auth\WalletSync.Auth.csproj" />
+    <ProjectReference Include="..\WalletSync.Postgres\WalletSync.Postgres.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+</Project>
