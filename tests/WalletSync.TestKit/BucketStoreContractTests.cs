@@ -126,4 +126,23 @@ public abstract class BucketStoreContractTests
                 Put("k", 0, new byte[] { 2 }),
             }));
     }
+
+    [Fact]
+    public async Task All_conflicting_keys_are_reported_not_just_the_first()
+    {
+        var s = await NewStoreAsync();
+        await s.CommitBatchAsync(Bucket, new[] { Put("a", 0, new byte[] { 1 }) });
+        await s.CommitBatchAsync(Bucket, new[] { Put("b", 0, new byte[] { 2 }) });
+
+        // both a and b are now at version 1, so expecting 0 is stale for both
+        var r = await s.CommitBatchAsync(Bucket, new[]
+        {
+            Put("a", 0, new byte[] { 9 }),
+            Put("b", 0, new byte[] { 9 }),
+        });
+        Assert.False(r.Committed);
+        Assert.Equal(2, r.Conflicts.Count);
+        Assert.Contains(r.Conflicts, c => c.Key == "a");
+        Assert.Contains(r.Conflicts, c => c.Key == "b");
+    }
 }
