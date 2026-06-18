@@ -30,9 +30,17 @@ public class CseV1EnvelopeTests
     public void Tampered_ciphertext_throws()
     {
         var kwk = Kwk();
-        var envelope = CseV1Envelope.Seal(Encoding.UTF8.GetBytes("secret"), kwk);
-        envelope[^1] ^= 0xFF;
-        Assert.ThrowsAny<Exception>(() => CseV1Envelope.Open(envelope, kwk));
+        var envelope = CseV1Envelope.Seal(Encoding.UTF8.GetBytes("secret payload"), kwk);
+
+        // Corrupt a byte INSIDE the ciphertext ("ct") field — valid JSON, valid base64 —
+        // so GCM tag verification (not JSON parsing) is what must reject it.
+        var node = System.Text.Json.Nodes.JsonNode.Parse(envelope)!;
+        var ct = Convert.FromBase64String(node["ct"]!.GetValue<string>());
+        ct[0] ^= 0xFF;
+        node["ct"] = Convert.ToBase64String(ct);
+        var tampered = Encoding.UTF8.GetBytes(node.ToJsonString());
+
+        Assert.ThrowsAny<System.Security.Cryptography.CryptographicException>(() => CseV1Envelope.Open(tampered, kwk));
     }
 
     [Fact]

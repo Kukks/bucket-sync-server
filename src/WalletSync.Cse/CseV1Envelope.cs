@@ -73,7 +73,7 @@ public static class CseV1Envelope
         var recipient = envelope.Recipients.FirstOrDefault(r => r.Type == "wallet")
                         ?? throw new CryptographicException("no wallet recipient");
 
-        var dek = new byte[recipient.WrappedDek.Length];
+        var dek = new byte[32]; // DEK is always 32 bytes; AesGcm rejects a wrong-size key if the envelope is malformed
         try
         {
             using (var gcm = new AesGcm(keyWrappingKey, 16))
