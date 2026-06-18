@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -15,6 +16,11 @@ public class AuthEndpointsTests
         var client = factory.CreateClient();
         var token = await TestAuth.AuthenticateAsync(client, RandomNumberGenerator.GetBytes(32));
         Assert.False(string.IsNullOrEmpty(token));
+
+        // the token must actually authenticate, not just be non-empty
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var head = await client.GetAsync("/v1/bucket/head");
+        Assert.Equal(HttpStatusCode.OK, head.StatusCode);
     }
 
     [Fact]
@@ -49,5 +55,21 @@ public class AuthEndpointsTests
 
         Assert.Equal(HttpStatusCode.OK, (await client.PostAsJsonAsync("/v1/auth/verify", body)).StatusCode);
         Assert.Equal(HttpStatusCode.Unauthorized, (await client.PostAsJsonAsync("/v1/auth/verify", body)).StatusCode); // nonce consumed
+    }
+
+    [Fact]
+    public async Task Revoking_session_invalidates_token()
+    {
+        await using var factory = new WebApplicationFactory<Program>();
+        var client = factory.CreateClient();
+        var token = await TestAuth.AuthenticateAsync(client, RandomNumberGenerator.GetBytes(32));
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var del = await client.DeleteAsync("/v1/auth/session");
+        Assert.Equal(HttpStatusCode.NoContent, del.StatusCode);
+
+        // protected route must now reject the revoked token
+        var head = await client.GetAsync("/v1/bucket/head");
+        Assert.Equal(HttpStatusCode.Unauthorized, head.StatusCode);
     }
 }
