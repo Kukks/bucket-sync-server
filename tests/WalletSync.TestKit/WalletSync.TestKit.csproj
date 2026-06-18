@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <PackageReference Include="NBitcoin" />
+    <PackageReference Include="NBitcoin.Secp256k1" />
     <PackageReference Include="xunit" />
   </ItemGroup>
 

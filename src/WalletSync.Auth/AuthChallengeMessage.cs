@@ -1,0 +1,19 @@
+using System.Security.Cryptography;
+using System.Text;
+
+namespace WalletSync.Auth;
+
+public static class AuthChallengeMessage
+{
+    private static readonly byte[] Tag = Encoding.UTF8.GetBytes("arkade-wallet-sync:auth:v1");
+
+    /// <summary>BIP-340 message: SHA-256( tag || nonceBytes ), 32 bytes. A client signs exactly this.</summary>
+    public static byte[] Compute(string nonceHex)
+    {
+        var nonce = Convert.FromHexString(nonceHex);
+        var buf = new byte[Tag.Length + nonce.Length];
+        Tag.CopyTo(buf, 0);
+        nonce.CopyTo(buf, Tag.Length);
+        return SHA256.HashData(buf);
+    }
+}
