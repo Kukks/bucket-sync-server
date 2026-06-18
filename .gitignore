@@ -1,0 +1,8 @@
+# Build output
+bin/
+obj/
+.vs/
+*.user
+
+# Superpowers plans are working-tree only (never committed); specs ARE tracked.
+docs/superpowers/plans/
