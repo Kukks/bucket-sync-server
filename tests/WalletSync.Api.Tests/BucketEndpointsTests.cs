@@ -59,6 +59,29 @@ public class BucketEndpointsTests
     }
 
     [Fact]
+    public async Task Commit_with_malformed_base64_value_returns_400()
+    {
+        await using var f = new WebApplicationFactory<Program>();
+        var c = await AuthedClientAsync(f);
+
+        var badOp = new WriteOpDto("vtxo:bad", 0, "cse-v1", "not!base64!!", false);
+        var resp = await c.PostAsJsonAsync("/v1/bucket/commit", new CommitRequest(new[] { badOp }));
+        Assert.Equal(HttpStatusCode.BadRequest, resp.StatusCode);
+    }
+
+    [Fact]
+    public async Task Commit_then_head_has_non_empty_content_hash()
+    {
+        await using var f = new WebApplicationFactory<Program>();
+        var c = await AuthedClientAsync(f);
+
+        await c.PostAsJsonAsync("/v1/bucket/commit", new CommitRequest(new[] { Put("vtxo:hash", 0, new byte[] { 4, 5, 6 }) }));
+        var head = (await (await c.GetAsync("/v1/bucket/head")).Content.ReadFromJsonAsync<HeadResponse>())!;
+        Assert.Equal(1, head.CurrentSeq);
+        Assert.False(string.IsNullOrEmpty(head.ContentHash));
+    }
+
+    [Fact]
     public async Task Two_devices_same_identity_share_a_bucket()
     {
         await using var f = new WebApplicationFactory<Program>();

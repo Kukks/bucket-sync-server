@@ -86,7 +86,7 @@ bucket.MapPost("/commit", async (HttpContext http, CommitRequest req, SyncServic
     var b = (string)http.Items[BearerAuthFilter.BucketIdItem]!;
     CommitResult result;
     try { result = await sync.CommitAsync(b, req.Ops.Select(o => o.ToWriteOp()).ToList(), ct); }
-    catch (ArgumentException) { return Results.BadRequest(); }
+    catch (Exception ex) when (ex is ArgumentException or FormatException) { return Results.BadRequest(); }
     var body = CommitResponse.From(result);
     return result.Committed
         ? Results.Ok(body)
