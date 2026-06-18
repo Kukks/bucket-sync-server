@@ -47,4 +47,5 @@ public class SyncServiceStreamTests
         Assert.True(await move);
         Assert.Equal(2, e.Current);
     }
+
 }

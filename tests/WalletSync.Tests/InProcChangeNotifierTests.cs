@@ -51,4 +51,16 @@ public class InProcChangeNotifierTests
         await n.PublishAsync("b2", 9); // different bucket
         await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await move);
     }
+
+    [Fact]
+    public async Task Event_published_after_subscribe_but_before_first_read_is_delivered()
+    {
+        var n = new InProcChangeNotifier();
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        var stream = n.Subscribe("b", cts.Token);   // must register the channel synchronously, here
+        await n.PublishAsync("b", 7);                 // lands BEFORE any read
+        await using var e = stream.GetAsyncEnumerator(cts.Token);
+        Assert.True(await e.MoveNextAsync());
+        Assert.Equal(7L, e.Current);
+    }
 }
