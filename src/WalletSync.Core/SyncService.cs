@@ -21,5 +21,28 @@ public sealed class SyncService
         return result;
     }
 
-    // StreamAsync added in Task 14.
+    public async IAsyncEnumerable<long> StreamAsync(
+        string bucketId, long lastEventId, [EnumeratorCancellation] CancellationToken ct)
+    {
+        // Subscribe BEFORE reading head so a commit in the gap is captured by the live channel.
+        await using var live = _notifier.Subscribe(bucketId, ct).GetAsyncEnumerator(ct);
+
+        long lastEmitted = lastEventId;
+        var head = await _store.GetHeadAsync(bucketId, ct);
+        if (head.CurrentSeq > lastEmitted)
+        {
+            lastEmitted = head.CurrentSeq;
+            yield return head.CurrentSeq;
+        }
+
+        while (await live.MoveNextAsync())
+        {
+            var seq = live.Current;
+            if (seq > lastEmitted)
+            {
+                lastEmitted = seq;
+                yield return seq;
+            }
+        }
+    }
 }
