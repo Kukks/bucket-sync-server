@@ -280,4 +280,11 @@ public abstract class BucketStoreContractTests
         var s = await NewStoreAsync();
         Assert.Empty(await s.GetBatchAsync(Bucket, Array.Empty<string>()));
     }
+
+    [Fact]
+    public async Task GetBatch_on_unknown_bucket_returns_empty()
+    {
+        var s = await NewStoreAsync();
+        Assert.Empty(await s.GetBatchAsync("no-such-bucket", new[] { "k" }));
+    }
 }
