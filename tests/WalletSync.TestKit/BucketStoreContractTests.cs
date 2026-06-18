@@ -233,4 +233,30 @@ public abstract class BucketStoreContractTests
         Assert.Equal(1, page.NextSeq);
         Assert.False(page.HasMore);
     }
+
+    [Fact]
+    public async Task Same_commits_yield_same_content_hash_across_instances()
+    {
+        var s1 = await NewStoreAsync();
+        var s2 = await NewStoreAsync();
+        foreach (var s in new[] { s1, s2 })
+        {
+            await s.CommitBatchAsync(Bucket, new[] { Put("a", 0, new byte[] { 1 }), Put("b", 0, new byte[] { 2 }) });
+            await s.CommitBatchAsync(Bucket, new[] { Put("a", 1, new byte[] { 9 }) });
+        }
+        var h1 = (await s1.GetHeadAsync(Bucket)).ContentHash;
+        var h2 = (await s2.GetHeadAsync(Bucket)).ContentHash;
+        Assert.Equal(h1, h2);
+        Assert.NotEqual("", h1);
+    }
+
+    [Fact]
+    public async Task Different_content_yields_different_hash()
+    {
+        var s1 = await NewStoreAsync();
+        var s2 = await NewStoreAsync();
+        await s1.CommitBatchAsync(Bucket, new[] { Put("k", 0, new byte[] { 1 }) });
+        await s2.CommitBatchAsync(Bucket, new[] { Put("k", 0, new byte[] { 2 }) });
+        Assert.NotEqual((await s1.GetHeadAsync(Bucket)).ContentHash, (await s2.GetHeadAsync(Bucket)).ContentHash);
+    }
 }
