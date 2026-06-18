@@ -11,6 +11,7 @@ public static class AuthChallengeMessage
     public static byte[] Compute(string nonceHex)
     {
         var nonce = Convert.FromHexString(nonceHex);
+        if (nonce.Length != 32) throw new ArgumentException("nonce must be 32 bytes", nameof(nonceHex));
         var buf = new byte[Tag.Length + nonce.Length];
         Tag.CopyTo(buf, 0);
         nonce.CopyTo(buf, Tag.Length);
