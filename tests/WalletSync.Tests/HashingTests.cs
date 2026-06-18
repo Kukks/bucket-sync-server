@@ -33,4 +33,12 @@ public class HashingTests
         var v2 = v1 with { Version = 2 };
         Assert.NotEqual(Hashing.BucketContentHash(new[] { v1 }), Hashing.BucketContentHash(new[] { v2 }));
     }
+
+    [Fact]
+    public void BucketContentHash_changes_when_deleted_flag_changes()
+    {
+        var live = new BucketEntry("b", "k", 1, 1, "h", "cse-v1", false, new byte[] { 1 });
+        var dead = live with { Deleted = true };
+        Assert.NotEqual(Hashing.BucketContentHash(new[] { live }), Hashing.BucketContentHash(new[] { dead }));
+    }
 }
