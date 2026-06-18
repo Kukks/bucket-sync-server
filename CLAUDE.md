@@ -9,7 +9,10 @@ The design spec is authoritative — **read it before any work**:
 
 ## Status
 
-Design **and Phase 1 plan complete**. Authoritative plan: `docs/superpowers/plans/2026-06-17-wallet-sync-server-phase-1.md` (26 tasks — the 06-17 sync-engine plan with the `cse-v1` reference envelope + e2e grafted in; a duplicate 06-18 draft was discarded). **Execution is underway via `superpowers:subagent-driven-development`** (fresh subagent + review per task). Do NOT re-brainstorm or re-plan — the design and plan are settled. Progress is tracked in the SDD ledger (`.git/sdd/progress.md`); after any compaction, trust it and `git log` over recollection.
+Phase 1 **implemented** (see `docs/superpowers/plans/2026-06-17-wallet-sync-server-phase-1.md`):
+Postgres + in-memory sync engine (CAS + cursor + atomic batch + SSE), Schnorr challenge auth,
+`cse-v1` opaque envelopes. All contract/unit/integration tests green. Phase 2 (TEE/`ecdh-tee-v1`
+recovery) remains deferred behind the existing `IAuthenticator` / envelope-scheme seams.
 
 ## Locked decisions (rationale in the spec)
 
