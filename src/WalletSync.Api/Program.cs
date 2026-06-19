@@ -4,7 +4,11 @@ using WalletSync.Auth;
 using WalletSync.Core;
 using WalletSync.Postgres;
 
-var builder = WebApplication.CreateBuilder(args);
+var builder = WebApplication.CreateSlimBuilder(args);
+
+// Source-generated JSON (no reflection) so the minimal API is NativeAOT / trim safe.
+builder.Services.ConfigureHttpJsonOptions(o =>
+    o.SerializerOptions.TypeInfoResolverChain.Insert(0, AppJsonContext.Default));
 
 builder.Services.AddSingleton<IAuthenticator, SchnorrAuthenticator>();
 builder.Services.AddSingleton<IChangeNotifier, InProcChangeNotifier>();
@@ -32,7 +36,7 @@ var app = builder.Build();
 if (string.Equals(backend, "Postgres", StringComparison.OrdinalIgnoreCase))
     await Migrations.ApplyAsync(app.Services.GetRequiredService<NpgsqlDataSource>());
 
-app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
+app.MapGet("/health", () => Results.Ok(new HealthResponse("ok")));
 
 // ---- auth (Task 19) ----
 var auth = app.MapGroup("/v1/auth");
@@ -90,7 +94,7 @@ bucket.MapPost("/commit", async (HttpContext http, CommitRequest req, SyncServic
     var body = CommitResponse.From(result);
     return result.Committed
         ? Results.Ok(body)
-        : Results.Json(body, statusCode: StatusCodes.Status409Conflict);
+        : Results.Json(body, AppJsonContext.Default.CommitResponse, statusCode: StatusCodes.Status409Conflict);
 });
 bucket.MapGet("/diff", async (HttpContext http, long since, int? limit, IBucketStore store, CancellationToken ct) =>
 {

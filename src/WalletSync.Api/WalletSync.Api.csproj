@@ -10,6 +10,15 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <!-- AOT-ready without forcing native compilation on every publish (that needs a RID + a C/C++
+         toolchain). The Request Delegate Generator removes endpoint-delegate reflection and the
+         AOT/trim analyzers keep regressions out. The native build is opt-in:
+         `publish -r <rid> -p:PublishAot=true` (see Dockerfile.aot). -->
+    <EnableRequestDelegateGenerator>true</EnableRequestDelegateGenerator>
+    <EnableAotAnalyzer>true</EnableAotAnalyzer>
+    <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
+    <EnableSingleFileAnalyzer>true</EnableSingleFileAnalyzer>
+    <InvariantGlobalization>true</InvariantGlobalization>
   </PropertyGroup>
 
 </Project>

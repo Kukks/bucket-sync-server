@@ -1,0 +1,30 @@
+# syntax=docker/dockerfile:1
+#
+# NativeAOT build: compiles WalletSync.Api to a self-contained native binary (no .NET runtime).
+# Proves the server is AOT-compatible end to end (whole-program ILC trim analysis).
+
+FROM mcr.microsoft.com/dotnet/sdk:10.0@sha256:548d93f8a18a1acbe6cc127bc4f47281430d34a9e35c18afa80a8d6741c2adc3 AS build
+# NativeAOT prerequisites (Debian): clang + zlib headers.
+RUN apt-get update && apt-get install -y --no-install-recommends clang zlib1g-dev && rm -rf /var/lib/apt/lists/*
+WORKDIR /src
+
+COPY global.json Directory.Build.props Directory.Packages.props ./
+COPY src/WalletSync.Api/WalletSync.Api.csproj           src/WalletSync.Api/packages.lock.json           src/WalletSync.Api/
+COPY src/WalletSync.Core/WalletSync.Core.csproj         src/WalletSync.Core/packages.lock.json          src/WalletSync.Core/
+COPY src/WalletSync.Auth/WalletSync.Auth.csproj         src/WalletSync.Auth/packages.lock.json          src/WalletSync.Auth/
+COPY src/WalletSync.Postgres/WalletSync.Postgres.csproj src/WalletSync.Postgres/packages.lock.json      src/WalletSync.Postgres/
+COPY src/WalletSync.Cse/WalletSync.Cse.csproj           src/WalletSync.Cse/packages.lock.json           src/WalletSync.Cse/
+RUN dotnet restore src/WalletSync.Api/WalletSync.Api.csproj -r linux-x64 -p:PublishAot=true
+
+COPY src/ src/
+RUN dotnet publish src/WalletSync.Api/WalletSync.Api.csproj \
+    -c Release -r linux-x64 --no-restore -o /app -p:PublishAot=true -p:ContinuousIntegrationBuild=true
+
+# runtime-deps has the native OS deps (libc, openssl) but NO .NET runtime — all the AOT binary needs.
+FROM mcr.microsoft.com/dotnet/runtime-deps:10.0 AS runtime
+WORKDIR /app
+COPY --from=build /app/WalletSync.Api ./
+USER $APP_UID
+ENV ASPNETCORE_URLS=http://+:8080
+EXPOSE 8080
+ENTRYPOINT ["./WalletSync.Api"]
