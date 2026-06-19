@@ -1,11 +1,15 @@
 # wallet-sync-server
 
-Generic, end-to-end-encrypted backup / restore / sync server for **Arkade (Ark) Bitcoin wallets**. Interface-driven C#. The server only ever stores **opaque ciphertext** — it never reads value contents.
+Generic, end-to-end-encrypted backup / restore / sync server — a schema-agnostic, multi-device, encrypted key-value **bucket sync protocol**. Interface-driven C#. The server only ever stores **opaque ciphertext** — it never reads value contents, so it stays agnostic to whatever any client chooses to store.
 
 ## Source of truth
 
 The design spec is authoritative — **read it before any work**:
 `docs/superpowers/specs/2026-06-17-wallet-sync-server-design.md`
+
+*Historical note: the spec is written against the original motivating use case (encrypted
+Bitcoin-wallet state sync). The protocol and server are fully generic — opaque buckets, no
+domain-specific types — so treat that wallet framing as **one example client**, not a coupling.*
 
 ## Status
 
@@ -20,7 +24,7 @@ Delegate Generator + a source-generated `JsonSerializerContext`); GitHub Actions
 (`.github/workflows/ci.yml`) builds/tests and publishes the AOT image to GHCR on `main`.
 **Reproducible build:** per-project `packages.lock.json` (locked-mode in CI), exact SDK pin
 (`global.json`), digest-pinned base images, deterministic IL — verified byte-identical across clean
-rebuilds. Full suite **94/0** (Docker required for the Postgres/e2e tests). Everything is **local
+rebuilds. Full suite **98/0** (Docker required for the Postgres/e2e tests). Everything is **local
 only — not yet pushed** (no git remote configured). Deferred-by-choice (YAGNI, not blocking):
 incremental bucket content-hash, `challenges` cleanup/index, `last_seen` write throttling.
 
@@ -33,14 +37,14 @@ incremental bucket content-hash, `challenges` cleanup/index, `last_seen` write t
 - Transport: **REST/JSON + SSE** (cursor = `Last-Event-ID`).
 - Batch: **all-or-nothing transaction** = one cursor bump = one SSE event.
 - Backend: **Postgres** behind `IBucketStore` (advisory-lock-per-bucket commit); in-memory double for tests.
-- Server is **schema-agnostic** (per-app buckets); each SDK client owns its own key scheme + value format.
+- Server is **schema-agnostic** (per-app buckets); each client owns its own key scheme + value format.
 
 ## Scope
 
 - **Phase 1 (build):** Postgres sync engine (CAS + cursor + atomic batch + SSE) + Schnorr challenge auth + `cse-v1` client-side-encrypted envelope.
-- **Deferred (do NOT build now):** [`ArkLabsHQ/enclave`](https://github.com/ArkLabsHQ/enclave) TEE integration (AWS Nitro) + ECDH `ecdh-tee-v1` + external-auth recovery; multi-node SSE fan-out (Redis/NATS); cross-SDK canonical schema; rate-limiting on `/v1/auth/challenge`.
+- **Deferred (do NOT build now):** [`ArkLabsHQ/enclave`](https://github.com/ArkLabsHQ/enclave) TEE integration (AWS Nitro) + ECDH `ecdh-tee-v1` + external-auth recovery; multi-node SSE fan-out (Redis/NATS); cross-client canonical schema; rate-limiting on `/v1/auth/challenge`.
 - **Rejected (do not reintroduce):** last-write-wins; the server exposing typed entity interfaces.
 
-## Reference repos (siblings under `c:/git` — DO NOT modify)
+## Clients
 
-Target clients: `arkade-os/wallet`, and SDKs `ts-sdk`, `dotnet-sdk` ("NArk", C# — the natural home for the C# sync client via its `IVtxoStorage`/`IWalletStorage` + `SetMetadataValue` cursor slot), `go-sdk`, `rust-sdk`. Identity is uniform across all SDKs (secp256k1 / BIP-340 Schnorr / BIP-32). **`bark` (gitlab `ark-bitcoin/bark`) is NOT a target** — it was only reference material.
+Any app that adopts the protocol is a client; the server is schema-agnostic and never sees plaintext. Client **identity is uniform**: secp256k1 / BIP-340 Schnorr / BIP-32. Each client owns its own key namespace + value format and runs the client-side envelope (reference: `docs/cse-v1.md`, `src/WalletSync.Cse`). Any sibling reference repos under `c:/git` are **read-only — DO NOT modify**.

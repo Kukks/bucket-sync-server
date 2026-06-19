@@ -5,7 +5,7 @@ namespace WalletSync.Auth;
 
 public static class AuthChallengeMessage
 {
-    private static readonly byte[] Tag = Encoding.UTF8.GetBytes("arkade-wallet-sync:auth:v1");
+    private static readonly byte[] Tag = Encoding.UTF8.GetBytes("bucket-sync:auth:v1");
 
     /// <summary>BIP-340 message: SHA-256( tag || nonceBytes ), 32 bytes. A client signs exactly this.</summary>
     public static byte[] Compute(string nonceHex)

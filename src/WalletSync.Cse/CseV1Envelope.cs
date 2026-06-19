@@ -7,7 +7,7 @@ namespace WalletSync.Cse;
 /// <summary>
 /// cse-v1 client-side encryption envelope (reference implementation).
 /// Data is sealed under a random per-record DEK (AES-256-GCM); the DEK is wrapped
-/// (also AES-256-GCM) to one or more recipients. Phase 1 wraps to the wallet key only.
+/// (also AES-256-GCM) to one or more recipients. Phase 1 wraps to the owner key only.
 /// The whole envelope is JSON, UTF-8 encoded — opaque to the server, which reads only the Scheme tag.
 /// </summary>
 public static class CseV1Envelope
@@ -51,7 +51,7 @@ public static class CseV1Envelope
 
             var envelope = new Envelope(
                 V: Scheme, Alg: "AES-256-GCM",
-                Recipients: new List<Recipient> { new("wallet", wrappedDek, wrapNonce, wrapTag) },
+                Recipients: new List<Recipient> { new("owner", wrappedDek, wrapNonce, wrapTag) },
                 Iv: iv, Ct: ct, Tag: dataTag);
 
             return JsonSerializer.SerializeToUtf8Bytes(envelope);
@@ -70,8 +70,8 @@ public static class CseV1Envelope
         if (envelope.V != Scheme)
             throw new CryptographicException($"unexpected scheme: {envelope.V}");
 
-        var recipient = envelope.Recipients.FirstOrDefault(r => r.Type == "wallet")
-                        ?? throw new CryptographicException("no wallet recipient");
+        var recipient = envelope.Recipients.FirstOrDefault(r => r.Type == "owner")
+                        ?? throw new CryptographicException("no owner recipient");
 
         var dek = new byte[32]; // DEK is always 32 bytes; AesGcm rejects a wrong-size key if the envelope is malformed
         try

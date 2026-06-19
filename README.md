@@ -1,7 +1,8 @@
 # wallet-sync-server
 
-Generic, end-to-end-encrypted backup / restore / sync server for Arkade (Ark) Bitcoin wallets.
-Interface-driven C# (.NET 10). The server stores **opaque ciphertext** only — it never reads value contents.
+Generic, end-to-end-encrypted backup / restore / sync server — a schema-agnostic, encrypted
+key-value **bucket sync protocol**. Interface-driven C# (.NET 10). The server stores **opaque
+ciphertext** only — it never reads value contents, so it stays agnostic to whatever a client stores.
 See the design spec in `docs/superpowers/specs/` and the Phase 1 plan in `docs/superpowers/plans/`.
 
 ## Build & test
@@ -78,7 +79,7 @@ NativeAOT-safe, so the document is produced at build instead.
 ### Auth signature scheme
 
 Bearer auth is challenge → BIP-340 Schnorr signature. The signed 32-byte message is
-`SHA-256( "arkade-wallet-sync:auth:v1" || nonceBytes )`. `pubkey` is the 32-byte x-only key (hex),
+`SHA-256( "bucket-sync:auth:v1" || nonceBytes )`. `pubkey` is the 32-byte x-only key (hex),
 `signature` is 64-byte BIP-340 (hex). The server verifies with NBitcoin and derives
 `bucketId = SHA-256(pubkey)` — never client-supplied.
 
