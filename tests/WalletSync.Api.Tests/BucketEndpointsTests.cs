@@ -70,6 +70,20 @@ public class BucketEndpointsTests
     }
 
     [Fact]
+    public async Task Commit_non_delete_op_with_null_value_returns_400()
+    {
+        await using var f = new WebApplicationFactory<Program>();
+        var c = await AuthedClientAsync(f);
+
+        // A non-delete write op with a null value is a malformed request (must be 400, not 200/500).
+        var resp = await c.PostAsJsonAsync("/v1/bucket/commit", new
+        {
+            ops = new[] { new { key = "vtxo:null", expectedVersion = 0L, scheme = "cse-v1", value = (string?)null, delete = false } }
+        });
+        Assert.Equal(HttpStatusCode.BadRequest, resp.StatusCode);
+    }
+
+    [Fact]
     public async Task Commit_then_head_has_non_empty_content_hash()
     {
         await using var f = new WebApplicationFactory<Program>();

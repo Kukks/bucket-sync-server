@@ -19,8 +19,14 @@ public record EntriesResponse(IReadOnlyList<EntryDto> Entries);
 
 public record WriteOpDto(string Key, long ExpectedVersion, string Scheme, string Value, bool Delete)
 {
-    public WriteOp ToWriteOp() =>
-        new(Key, ExpectedVersion, Scheme, Delete ? Array.Empty<byte>() : Convert.FromBase64String(Value ?? ""), Delete);
+    public WriteOp ToWriteOp()
+    {
+        if (Delete) return new(Key, ExpectedVersion, Scheme, Array.Empty<byte>(), Delete: true);
+        // A non-delete op must carry a value. Null is a malformed request (→ 400);
+        // an empty/invalid base64 string still maps to 400 via the commit handler's catch.
+        if (Value is null) throw new ArgumentException("value is required for a non-delete op", nameof(Value));
+        return new(Key, ExpectedVersion, Scheme, Convert.FromBase64String(Value), Delete: false);
+    }
 }
 public record CommitRequest(IReadOnlyList<WriteOpDto> Ops);
 public record ConflictDto(string Key, long CurrentVersion);
