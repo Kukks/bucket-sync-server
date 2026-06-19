@@ -10,7 +10,7 @@ See the design spec in `docs/superpowers/specs/` and the Phase 1 plan in `docs/s
 ```bash
 dotnet build
 dotnet test                               # all projects (Postgres + e2e tests need Docker running)
-dotnet test tests/WalletSync.Tests        # fast, in-memory only (no Docker)
+dotnet test tests/BucketSync.Tests        # fast, in-memory only (no Docker)
 ```
 
 ## Run
@@ -18,15 +18,15 @@ dotnet test tests/WalletSync.Tests        # fast, in-memory only (no Docker)
 In-memory backend (no database; state is lost on restart — for local dev only):
 
 ```bash
-dotnet run --project src/WalletSync.Api
+dotnet run --project src/BucketSync.Api
 ```
 
 Postgres backend:
 
 ```bash
 Backend=Postgres \
-ConnectionStrings__Postgres="Host=localhost;Username=postgres;Password=postgres;Database=walletsync" \
-dotnet run --project src/WalletSync.Api
+ConnectionStrings__Postgres="Host=localhost;Username=postgres;Password=postgres;Database=bucketsync" \
+dotnet run --project src/BucketSync.Api
 ```
 
 Migrations are applied automatically at startup when `Backend=Postgres`.
@@ -38,12 +38,12 @@ in-memory backend (`GET /health` → 200).
 
 ```bash
 # Framework-dependent (fast to build)
-docker build -t walletsync .
-docker run -p 8080:8080 walletsync
+docker build -t bucketsync .
+docker run -p 8080:8080 bucketsync
 
 # NativeAOT (self-contained native binary — smaller image, faster cold start; slower ILC build)
-docker build -f Dockerfile.aot -t walletsync-aot .
-docker run -p 8080:8080 walletsync-aot
+docker build -f Dockerfile.aot -t bucketsync-aot .
+docker run -p 8080:8080 bucketsync-aot
 ```
 
 Postgres backend (either image) — pass config as environment variables:
@@ -51,8 +51,8 @@ Postgres backend (either image) — pass config as environment variables:
 ```bash
 docker run -p 8080:8080 \
   -e Backend=Postgres \
-  -e ConnectionStrings__Postgres="Host=host.docker.internal;Username=postgres;Password=postgres;Database=walletsync" \
-  walletsync
+  -e ConnectionStrings__Postgres="Host=host.docker.internal;Username=postgres;Password=postgres;Database=bucketsync" \
+  bucketsync
 ```
 
 CI builds and tests on every push and publishes the **NativeAOT** image to GHCR on `main`.
@@ -74,7 +74,7 @@ NativeAOT-safe, so the document is produced at build instead.
 | GET | `/v1/bucket/diff?since=N&limit=M` | bearer | → `{entries[], nextSeq, hasMore}` (`limit` = max commits) |
 | GET | `/v1/bucket/stream` | bearer | SSE; `Last-Event-ID: N` resumes; emits new `seq` values |
 
-`value` fields are base64 in JSON and **opaque** to the server. A reference client-side envelope library (`src/WalletSync.Cse`, `CseV1Envelope.Seal/Open`) produces these `cse-v1` values; the server runtime never references it. The wire format is documented in [`docs/cse-v1.md`](docs/cse-v1.md) for non-C# SDKs.
+`value` fields are base64 in JSON and **opaque** to the server. A reference client-side envelope library (`src/BucketSync.Cse`, `CseV1Envelope.Seal/Open`) produces these `cse-v1` values; the server runtime never references it. The wire format is documented in [`docs/cse-v1.md`](docs/cse-v1.md) for non-C# SDKs.
 
 ### Auth signature scheme
 

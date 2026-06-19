@@ -11,4 +11,4 @@ docs
 .gitignore
 .dockerignore
 Dockerfile
-WalletSync.slnx
+BucketSync.slnx

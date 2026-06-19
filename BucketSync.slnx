@@ -1,0 +1,15 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/BucketSync.Api/BucketSync.Api.csproj" />
+    <Project Path="src/BucketSync.Auth/BucketSync.Auth.csproj" />
+    <Project Path="src/BucketSync.Core/BucketSync.Core.csproj" />
+    <Project Path="src/BucketSync.Cse/BucketSync.Cse.csproj" />
+    <Project Path="src/BucketSync.Postgres/BucketSync.Postgres.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/BucketSync.Api.Tests/BucketSync.Api.Tests.csproj" />
+    <Project Path="tests/BucketSync.Postgres.Tests/BucketSync.Postgres.Tests.csproj" />
+    <Project Path="tests/BucketSync.TestKit/BucketSync.TestKit.csproj" />
+    <Project Path="tests/BucketSync.Tests/BucketSync.Tests.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,18 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <PackageReference Include="NBitcoin" />
+    <PackageReference Include="NBitcoin.Secp256k1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\BucketSync.Core\BucketSync.Core.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>

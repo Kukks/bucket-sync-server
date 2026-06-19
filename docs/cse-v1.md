@@ -2,7 +2,7 @@
 
 Client-side encryption for bucket values. The server stores the envelope **opaquely** and never
 decrypts it — it only reads the entry's `scheme` tag (`"cse-v1"`). This doc is the wire format so
-non-C# clients can interoperate. Reference implementation: `src/WalletSync.Cse/CseV1Envelope.cs`.
+non-C# clients can interoperate. Reference implementation: `src/BucketSync.Cse/CseV1Envelope.cs`.
 
 ## TL;DR
 

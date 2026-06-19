@@ -1,14 +1,14 @@
 {
   "openapi": "3.1.1",
   "info": {
-    "title": "WalletSync.Api | v1",
+    "title": "BucketSync.Api | v1",
     "version": "1.0.0"
   },
   "paths": {
     "/health": {
       "get": {
         "tags": [
-          "WalletSync.Api"
+          "BucketSync.Api"
         ],
         "responses": {
           "200": {
@@ -20,7 +20,7 @@
     "/v1/auth/challenge": {
       "post": {
         "tags": [
-          "WalletSync.Api"
+          "BucketSync.Api"
         ],
         "requestBody": {
           "content": {
@@ -42,7 +42,7 @@
     "/v1/auth/verify": {
       "post": {
         "tags": [
-          "WalletSync.Api"
+          "BucketSync.Api"
         ],
         "requestBody": {
           "content": {
@@ -64,7 +64,7 @@
     "/v1/auth/session": {
       "delete": {
         "tags": [
-          "WalletSync.Api"
+          "BucketSync.Api"
         ],
         "responses": {
           "200": {
@@ -76,7 +76,7 @@
     "/v1/bucket/head": {
       "get": {
         "tags": [
-          "WalletSync.Api"
+          "BucketSync.Api"
         ],
         "responses": {
           "200": {
@@ -88,7 +88,7 @@
     "/v1/bucket/get": {
       "post": {
         "tags": [
-          "WalletSync.Api"
+          "BucketSync.Api"
         ],
         "requestBody": {
           "content": {
@@ -110,7 +110,7 @@
     "/v1/bucket/commit": {
       "post": {
         "tags": [
-          "WalletSync.Api"
+          "BucketSync.Api"
         ],
         "requestBody": {
           "content": {
@@ -132,7 +132,7 @@
     "/v1/bucket/diff": {
       "get": {
         "tags": [
-          "WalletSync.Api"
+          "BucketSync.Api"
         ],
         "parameters": [
           {
@@ -171,7 +171,7 @@
     "/v1/bucket/stream": {
       "get": {
         "tags": [
-          "WalletSync.Api"
+          "BucketSync.Api"
         ],
         "responses": {
           "200": {
@@ -284,7 +284,7 @@
   },
   "tags": [
     {
-      "name": "WalletSync.Api"
+      "name": "BucketSync.Api"
     }
   ]
 }

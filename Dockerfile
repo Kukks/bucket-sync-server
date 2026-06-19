@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 #
-# Multi-stage build for the WalletSync.Api server.
+# Multi-stage build for the BucketSync.Api server.
 # Runs on a normal host (Postgres is external); this is NOT the deferred Nitro enclave.
 #
 # Reproducible: base images pinned by digest, SDK pinned via global.json (10.0.301, rollForward
@@ -13,16 +13,16 @@ WORKDIR /src
 
 # Restore layer — cached unless the SDK pin, central props, lock files, or any .csproj changes.
 COPY global.json Directory.Build.props Directory.Packages.props ./
-COPY src/WalletSync.Api/WalletSync.Api.csproj           src/WalletSync.Api/packages.lock.json           src/WalletSync.Api/
-COPY src/WalletSync.Core/WalletSync.Core.csproj         src/WalletSync.Core/packages.lock.json          src/WalletSync.Core/
-COPY src/WalletSync.Auth/WalletSync.Auth.csproj         src/WalletSync.Auth/packages.lock.json          src/WalletSync.Auth/
-COPY src/WalletSync.Postgres/WalletSync.Postgres.csproj src/WalletSync.Postgres/packages.lock.json      src/WalletSync.Postgres/
-COPY src/WalletSync.Cse/WalletSync.Cse.csproj           src/WalletSync.Cse/packages.lock.json           src/WalletSync.Cse/
-RUN dotnet restore src/WalletSync.Api/WalletSync.Api.csproj --locked-mode
+COPY src/BucketSync.Api/BucketSync.Api.csproj           src/BucketSync.Api/packages.lock.json           src/BucketSync.Api/
+COPY src/BucketSync.Core/BucketSync.Core.csproj         src/BucketSync.Core/packages.lock.json          src/BucketSync.Core/
+COPY src/BucketSync.Auth/BucketSync.Auth.csproj         src/BucketSync.Auth/packages.lock.json          src/BucketSync.Auth/
+COPY src/BucketSync.Postgres/BucketSync.Postgres.csproj src/BucketSync.Postgres/packages.lock.json      src/BucketSync.Postgres/
+COPY src/BucketSync.Cse/BucketSync.Cse.csproj           src/BucketSync.Cse/packages.lock.json           src/BucketSync.Cse/
+RUN dotnet restore src/BucketSync.Api/BucketSync.Api.csproj --locked-mode
 
 # Build + publish. ContinuousIntegrationBuild normalizes embedded source paths.
 COPY src/ src/
-RUN dotnet publish src/WalletSync.Api/WalletSync.Api.csproj \
+RUN dotnet publish src/BucketSync.Api/BucketSync.Api.csproj \
     -c Release -o /app --no-restore -p:ContinuousIntegrationBuild=true
 
 # ---- runtime ----
@@ -37,4 +37,4 @@ EXPOSE 8080
 
 # Orchestrators should liveness/readiness-probe GET /health (returns 200).
 # Default backend is in-memory; set Backend=Postgres + ConnectionStrings__Postgres for production.
-ENTRYPOINT ["dotnet", "WalletSync.Api.dll"]
+ENTRYPOINT ["dotnet", "BucketSync.Api.dll"]

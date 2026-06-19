@@ -47,4 +47,4 @@ incremental bucket content-hash, `challenges` cleanup/index, `last_seen` write t
 
 ## Clients
 
-Any app that adopts the protocol is a client; the server is schema-agnostic and never sees plaintext. Client **identity is uniform**: secp256k1 / BIP-340 Schnorr / BIP-32. Each client owns its own key namespace + value format and runs the client-side envelope (reference: `docs/cse-v1.md`, `src/WalletSync.Cse`). Any sibling reference repos under `c:/git` are **read-only — DO NOT modify**.
+Any app that adopts the protocol is a client; the server is schema-agnostic and never sees plaintext. Client **identity is uniform**: secp256k1 / BIP-340 Schnorr / BIP-32. Each client owns its own key namespace + value format and runs the client-side envelope (reference: `docs/cse-v1.md`, `src/BucketSync.Cse`). Any sibling reference repos under `c:/git` are **read-only — DO NOT modify**.
