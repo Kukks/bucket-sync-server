@@ -14,6 +14,16 @@ Postgres + in-memory sync engine (CAS + cursor + atomic batch + SSE), Schnorr ch
 `cse-v1` opaque envelopes. All contract/unit/integration tests green. Phase 2 (TEE/`ecdh-tee-v1`
 recovery) remains deferred behind the existing `IAuthenticator` / envelope-scheme seams.
 
+**Build & deploy (added after Phase 1, on `main`):** `Dockerfile` (framework-dependent) and
+`Dockerfile.aot` (NativeAOT — the server IS AOT-compatible via `CreateSlimBuilder` + the Request
+Delegate Generator + a source-generated `JsonSerializerContext`); GitHub Actions CI
+(`.github/workflows/ci.yml`) builds/tests and publishes the AOT image to GHCR on `main`.
+**Reproducible build:** per-project `packages.lock.json` (locked-mode in CI), exact SDK pin
+(`global.json`), digest-pinned base images, deterministic IL — verified byte-identical across clean
+rebuilds. Full suite **94/0** (Docker required for the Postgres/e2e tests). Everything is **local
+only — not yet pushed** (no git remote configured). Deferred-by-choice (YAGNI, not blocking):
+incremental bucket content-hash, `challenges` cleanup/index, `last_seen` write throttling.
+
 ## Locked decisions (rationale in the spec)
 
 - Optimistic **CAS per key** (plaintext `version`, ciphertext value) — **not** last-write-wins.
