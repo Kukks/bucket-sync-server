@@ -1,0 +1,14 @@
+# Keep the build context small + the restore layer cache stable.
+**/bin
+**/obj
+.git
+.github
+.vs
+.worktrees
+tests
+docs
+*.md
+.gitignore
+.dockerignore
+Dockerfile
+WalletSync.slnx
