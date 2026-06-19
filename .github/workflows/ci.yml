@@ -15,7 +15,7 @@ jobs:
           global-json-file: global.json
       # The Postgres + e2e tests use Testcontainers, which drive the Docker daemon
       # that GitHub-hosted ubuntu runners provide out of the box.
-      - run: dotnet test -c Release -p:ContinuousIntegrationBuild=true
+      - run: dotnet test -c Release -p:ContinuousIntegrationBuild=true -p:RestoreLockedMode=true
 
   image:
     needs: build-test

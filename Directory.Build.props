@@ -6,5 +6,12 @@
     <LangVersion>latest</LangVersion>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+
+    <!-- Reproducible build: deterministic IL (stable MVID + zeroed PE timestamp) and a NuGet
+         lock file per project so transitive dependency versions are pinned, not floating.
+         The exact SDK is pinned in global.json; CI/Docker publish with ContinuousIntegrationBuild
+         to normalize embedded source paths for cross-machine reproducibility. -->
+    <Deterministic>true</Deterministic>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
   </PropertyGroup>
 </Project>
