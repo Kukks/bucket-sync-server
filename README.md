@@ -30,6 +30,32 @@ dotnet run --project src/WalletSync.Api
 
 Migrations are applied automatically at startup when `Backend=Postgres`.
 
+## Docker
+
+Two images are provided. Both listen on `:8080`, run as a non-root user, and default to the
+in-memory backend (`GET /health` → 200).
+
+```bash
+# Framework-dependent (fast to build)
+docker build -t walletsync .
+docker run -p 8080:8080 walletsync
+
+# NativeAOT (self-contained native binary — smaller image, faster cold start; slower ILC build)
+docker build -f Dockerfile.aot -t walletsync-aot .
+docker run -p 8080:8080 walletsync-aot
+```
+
+Postgres backend (either image) — pass config as environment variables:
+
+```bash
+docker run -p 8080:8080 \
+  -e Backend=Postgres \
+  -e ConnectionStrings__Postgres="Host=host.docker.internal;Username=postgres;Password=postgres;Database=walletsync" \
+  walletsync
+```
+
+CI builds and tests on every push and publishes the **NativeAOT** image to GHCR on `main`.
+
 ## Protocol (v1)
 
 | Method | Route | Auth | Purpose |
