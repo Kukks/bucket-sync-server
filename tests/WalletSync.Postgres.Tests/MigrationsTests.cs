@@ -15,7 +15,7 @@ public class MigrationsTests
         await Migrations.ApplyAsync(_fx.DataSource); // second apply must be a no-op, not an error
 
         await using var cmd = _fx.DataSource.CreateCommand(
-            "SELECT count(*) FROM information_schema.tables WHERE table_name = ANY(@t)");
+            "SELECT count(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name = ANY(@t)");
         cmd.Parameters.AddWithValue("t", new[] { "buckets", "entries", "sessions", "challenges" });
         Assert.Equal(4L, (long)(await cmd.ExecuteScalarAsync())!);
     }

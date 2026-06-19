@@ -172,7 +172,21 @@ public abstract class BucketStoreContractTests
         var e = Assert.Single(await s.GetBatchAsync(Bucket, new[] { "k" }));
         Assert.True(e.Deleted);
         Assert.Equal(2, e.Version);
+        Assert.Equal(2, e.Seq); // the tombstone gets the commit's seq, like any write
         Assert.Empty(e.Value);
+    }
+
+    [Fact]
+    public async Task Stale_delete_is_rejected_and_does_not_tombstone()
+    {
+        var s = await NewStoreAsync();
+        await s.CommitBatchAsync(Bucket, new[] { Put("k", 0, new byte[] { 7 }) }); // v1
+        var r = await s.CommitBatchAsync(Bucket, new[] { Del("k", 0) });           // stale: expects 0, actual 1
+        Assert.False(r.Committed);
+        Assert.Equal(1, Assert.Single(r.Conflicts).CurrentVersion);
+        var e = Assert.Single(await s.GetBatchAsync(Bucket, new[] { "k" }));
+        Assert.False(e.Deleted); // nothing written — still the live v1
+        Assert.Equal(1, e.Version);
     }
 
     [Fact]
@@ -209,6 +223,7 @@ public abstract class BucketStoreContractTests
         var tail = await s.DiffAsync(Bucket, sinceSeq: 1, limit: 10);
         Assert.Equal("b", Assert.Single(tail.Entries).Key);
         Assert.Equal(2, tail.NextSeq);
+        Assert.False(tail.HasMore);
     }
 
     [Fact]
@@ -257,11 +272,24 @@ public abstract class BucketStoreContractTests
         var h1 = (await s1.GetHeadAsync(Bucket)).ContentHash;
         var h2 = (await s2.GetHeadAsync(Bucket)).ContentHash;
         Assert.Equal(h1, h2);
-        Assert.NotEqual("", h1);
+        Assert.NotEmpty(h1);
     }
 
     [Fact]
-    public async Task Different_content_yields_different_hash()
+    public async Task Content_hash_is_independent_of_commit_order()
+    {
+        var s1 = await NewStoreAsync();
+        var s2 = await NewStoreAsync();
+        await s1.CommitBatchAsync(Bucket, new[] { Put("a", 0, new byte[] { 1 }) });
+        await s1.CommitBatchAsync(Bucket, new[] { Put("b", 0, new byte[] { 2 }) });
+        await s2.CommitBatchAsync(Bucket, new[] { Put("b", 0, new byte[] { 2 }) }); // reverse commit order
+        await s2.CommitBatchAsync(Bucket, new[] { Put("a", 0, new byte[] { 1 }) });
+        // Same logical (key,version,value) set committed in a different order -> identical hash.
+        Assert.Equal((await s1.GetHeadAsync(Bucket)).ContentHash, (await s2.GetHeadAsync(Bucket)).ContentHash);
+    }
+
+    [Fact]
+    public async Task Different_value_yields_different_hash()
     {
         var s1 = await NewStoreAsync();
         var s2 = await NewStoreAsync();

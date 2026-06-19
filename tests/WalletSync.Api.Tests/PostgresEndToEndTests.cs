@@ -27,7 +27,7 @@ public class PostgresEndToEndTests : IClassFixture<PostgresApiFactory>
         // head reflects it (with a real content hash)
         var head = (await (await client.GetAsync("/v1/bucket/head")).Content.ReadFromJsonAsync<HeadResponse>())!;
         Assert.Equal(1, head.CurrentSeq);
-        Assert.NotEqual("", head.ContentHash);
+        Assert.Matches("^[0-9a-f]{64}$", head.ContentHash); // a real 64-char hex SHA-256, not merely non-empty
 
         // diff returns it
         var diff = (await (await client.GetAsync("/v1/bucket/diff?since=0&limit=10")).Content.ReadFromJsonAsync<DiffResponse>())!;
