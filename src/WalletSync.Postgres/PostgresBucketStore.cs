@@ -58,12 +58,16 @@ public sealed class PostgresBucketStore : IBucketStore
             await locker.ExecuteScalarAsync(ct);
         }
 
-        // current_seq (bucket guaranteed to exist: provisioned at auth)
+        // current_seq — the bucket must be provisioned first (EnsureBucketAsync at auth/TOFU).
+        // A missing row is a clear error, not a NullReferenceException. (await using tx => rollback.)
         long currentSeq;
         await using (var headCmd = new NpgsqlCommand("SELECT current_seq FROM buckets WHERE bucket_id=@b", conn, tx))
         {
             headCmd.Parameters.AddWithValue("b", bucketId);
-            currentSeq = (long)(await headCmd.ExecuteScalarAsync(ct))!;
+            var scalar = await headCmd.ExecuteScalarAsync(ct);
+            if (scalar is null)
+                throw new InvalidOperationException($"bucket not provisioned: {bucketId}");
+            currentSeq = (long)scalar;
         }
 
         // current versions for the op keys
