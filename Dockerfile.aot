@@ -9,12 +9,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends clang zlib1g-de
 WORKDIR /src
 
 COPY global.json Directory.Build.props Directory.Packages.props ./
-COPY src/WalletSync.Api/WalletSync.Api.csproj           src/WalletSync.Api/packages.lock.json           src/WalletSync.Api/
-COPY src/WalletSync.Core/WalletSync.Core.csproj         src/WalletSync.Core/packages.lock.json          src/WalletSync.Core/
-COPY src/WalletSync.Auth/WalletSync.Auth.csproj         src/WalletSync.Auth/packages.lock.json          src/WalletSync.Auth/
-COPY src/WalletSync.Postgres/WalletSync.Postgres.csproj src/WalletSync.Postgres/packages.lock.json      src/WalletSync.Postgres/
-COPY src/WalletSync.Cse/WalletSync.Cse.csproj           src/WalletSync.Cse/packages.lock.json           src/WalletSync.Cse/
-RUN dotnet restore src/WalletSync.Api/WalletSync.Api.csproj -r linux-x64 -p:PublishAot=true
+# Lock files are deliberately NOT copied into this restore layer: the AOT restore graph (RID runtime
+# assets + ILCompiler) differs from the normal lock and can't share it. Rather than write a throwaway
+# lock we don't enforce, the AOT build is made deterministic by central package management
+# (Directory.Packages.props pins every direct version) + the pinned SDK (global.json, which fixes the
+# ILCompiler/runtime versions). RestorePackagesWithLockFile=false is valid only with no lock present.
+COPY src/WalletSync.Api/WalletSync.Api.csproj           src/WalletSync.Api/
+COPY src/WalletSync.Core/WalletSync.Core.csproj         src/WalletSync.Core/
+COPY src/WalletSync.Auth/WalletSync.Auth.csproj         src/WalletSync.Auth/
+COPY src/WalletSync.Postgres/WalletSync.Postgres.csproj src/WalletSync.Postgres/
+COPY src/WalletSync.Cse/WalletSync.Cse.csproj           src/WalletSync.Cse/
+RUN dotnet restore src/WalletSync.Api/WalletSync.Api.csproj -r linux-x64 -p:PublishAot=true -p:RestorePackagesWithLockFile=false
 
 COPY src/ src/
 RUN dotnet publish src/WalletSync.Api/WalletSync.Api.csproj \
