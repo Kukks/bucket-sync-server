@@ -27,6 +27,16 @@ public abstract class BucketStoreContractTests
     }
 
     [Fact]
+    public async Task Commit_to_unprovisioned_bucket_throws()
+    {
+        var s = await NewStoreAsync();
+        // A bucket that was never provisioned (EnsureBucketAsync) is not committable —
+        // both backends must reject it with a clear error, not auto-create or NRE.
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => s.CommitBatchAsync("never-provisioned", new[] { Put("k", 0, new byte[] { 1 }) }));
+    }
+
+    [Fact]
     public async Task First_create_yields_version1_seq1_and_is_readable()
     {
         var s = await NewStoreAsync();

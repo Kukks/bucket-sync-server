@@ -46,7 +46,10 @@ public sealed class InMemoryBucketStore : IBucketStore
             if (!seen.Add(op.Key))
                 throw new ArgumentException($"duplicate key in batch: {op.Key}", nameof(ops));
 
-        var b = _buckets.GetOrAdd(bucketId, _ => new Bucket());
+        // The bucket must be provisioned first (EnsureBucketAsync) — parity with PostgresBucketStore,
+        // which requires the bucket row to exist before a commit (provisioning happens at auth/TOFU).
+        if (!_buckets.TryGetValue(bucketId, out var b))
+            throw new InvalidOperationException($"bucket not provisioned: {bucketId}");
         lock (b.Gate)
         {
             var conflicts = new List<Conflict>();
