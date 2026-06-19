@@ -73,7 +73,7 @@ NativeAOT-safe, so the document is produced at build instead.
 | GET | `/v1/bucket/diff?since=N&limit=M` | bearer | → `{entries[], nextSeq, hasMore}` (`limit` = max commits) |
 | GET | `/v1/bucket/stream` | bearer | SSE; `Last-Event-ID: N` resumes; emits new `seq` values |
 
-`value` fields are base64 in JSON and **opaque** to the server. A reference client-side envelope library (`src/WalletSync.Cse`, `CseV1Envelope.Seal/Open`) produces these `cse-v1` values; the server runtime never references it.
+`value` fields are base64 in JSON and **opaque** to the server. A reference client-side envelope library (`src/WalletSync.Cse`, `CseV1Envelope.Seal/Open`) produces these `cse-v1` values; the server runtime never references it. The wire format is documented in [`docs/cse-v1.md`](docs/cse-v1.md) for non-C# SDKs.
 
 ### Auth signature scheme
 
