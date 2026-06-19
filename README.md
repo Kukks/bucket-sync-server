@@ -58,6 +58,10 @@ CI builds and tests on every push and publishes the **NativeAOT** image to GHCR 
 
 ## Protocol (v1)
 
+The full machine-readable spec is generated at build time to [`docs/openapi.json`](docs/openapi.json)
+(OpenAPI 3.1). There is no runtime `/openapi` endpoint — runtime schema generation isn't
+NativeAOT-safe, so the document is produced at build instead.
+
 | Method | Route | Auth | Purpose |
 |---|---|---|---|
 | POST | `/v1/auth/challenge` | none | `{pubkey}` → `{nonce, expiresAt}` |

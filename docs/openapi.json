@@ -1,0 +1,290 @@
+{
+  "openapi": "3.1.1",
+  "info": {
+    "title": "WalletSync.Api | v1",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": [
+          "WalletSync.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/auth/challenge": {
+      "post": {
+        "tags": [
+          "WalletSync.Api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChallengeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/auth/verify": {
+      "post": {
+        "tags": [
+          "WalletSync.Api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/auth/session": {
+      "delete": {
+        "tags": [
+          "WalletSync.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/bucket/head": {
+      "get": {
+        "tags": [
+          "WalletSync.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/bucket/get": {
+      "post": {
+        "tags": [
+          "WalletSync.Api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GetRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/bucket/commit": {
+      "post": {
+        "tags": [
+          "WalletSync.Api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommitRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/bucket/diff": {
+      "get": {
+        "tags": [
+          "WalletSync.Api"
+        ],
+        "parameters": [
+          {
+            "name": "since",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int64"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/bucket/stream": {
+      "get": {
+        "tags": [
+          "WalletSync.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ChallengeRequest": {
+        "required": [
+          "pubkey"
+        ],
+        "type": "object",
+        "properties": {
+          "pubkey": {
+            "type": "string"
+          }
+        }
+      },
+      "CommitRequest": {
+        "required": [
+          "ops"
+        ],
+        "type": "object",
+        "properties": {
+          "ops": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WriteOpDto"
+            }
+          }
+        }
+      },
+      "GetRequest": {
+        "required": [
+          "keys"
+        ],
+        "type": "object",
+        "properties": {
+          "keys": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "VerifyRequest": {
+        "required": [
+          "pubkey",
+          "nonce",
+          "signature",
+          "device"
+        ],
+        "type": "object",
+        "properties": {
+          "pubkey": {
+            "type": "string"
+          },
+          "nonce": {
+            "type": "string"
+          },
+          "signature": {
+            "type": "string"
+          },
+          "device": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "WriteOpDto": {
+        "required": [
+          "key",
+          "expectedVersion",
+          "scheme",
+          "value",
+          "delete"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "expectedVersion": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "scheme": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          },
+          "delete": {
+            "type": "boolean"
+          }
+        }
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "WalletSync.Api"
+    }
+  ]
+}

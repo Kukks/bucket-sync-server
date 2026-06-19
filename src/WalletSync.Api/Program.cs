@@ -9,6 +9,7 @@ var builder = WebApplication.CreateSlimBuilder(args);
 // Source-generated JSON (no reflection) so the minimal API is NativeAOT / trim safe.
 builder.Services.ConfigureHttpJsonOptions(o =>
     o.SerializerOptions.TypeInfoResolverChain.Insert(0, AppJsonContext.Default));
+builder.Services.AddOpenApi();
 
 builder.Services.AddSingleton<IAuthenticator, SchnorrAuthenticator>();
 builder.Services.AddSingleton<IChangeNotifier, InProcChangeNotifier>();

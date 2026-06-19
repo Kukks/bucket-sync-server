@@ -6,6 +6,14 @@
     <ProjectReference Include="..\WalletSync.Postgres\WalletSync.Postgres.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+    <PackageReference Include="Microsoft.Extensions.ApiDescription.Server">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
@@ -19,6 +27,22 @@
     <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
     <EnableSingleFileAnalyzer>true</EnableSingleFileAnalyzer>
     <InvariantGlobalization>true</InvariantGlobalization>
+
+    <!-- Emit the OpenAPI document at BUILD time (no runtime /openapi endpoint, which isn't AOT-safe).
+         The committed docs/openapi.json is the machine-readable API spec; it regenerates on build.
+         Skipped under PublishAot: the GetDocument tool can't introspect a self-contained/AOT assembly. -->
+    <OpenApiGenerateDocuments>true</OpenApiGenerateDocuments>
+    <!-- The package defaults this to true when empty, so under PublishAot we must set it false
+         EXPLICITLY — the GetDocument tool can't introspect a self-contained/AOT assembly (exit 11). -->
+    <OpenApiGenerateDocuments Condition="'$(PublishAot)' == 'true'">false</OpenApiGenerateDocuments>
+    <OpenApiDocumentsDirectory>$(MSBuildProjectDirectory)\obj</OpenApiDocumentsDirectory>
   </PropertyGroup>
+
+  <!-- The tool names the doc after the assembly; copy it to the conventional committed path. -->
+  <Target Name="CopyOpenApiToDocs" AfterTargets="GenerateOpenApiDocuments" Condition="'$(PublishAot)' != 'true'">
+    <Copy SourceFiles="$(MSBuildProjectDirectory)\obj\WalletSync.Api.json"
+          DestinationFiles="$(MSBuildThisFileDirectory)..\..\docs\openapi.json"
+          SkipUnchangedFiles="true" />
+  </Target>
 
 </Project>
