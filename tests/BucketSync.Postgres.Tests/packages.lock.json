@@ -169,7 +169,8 @@
         "dependencies": {
           "BucketSync.Core": "[1.0.0, )",
           "NBitcoin": "[10.0.1, )",
-          "NBitcoin.Secp256k1": "[4.0.0, )"
+          "NBitcoin.Secp256k1": "[4.0.0, )",
+          "System.Formats.Cbor": "[10.0.0, )"
         }
       },
       "bucketsync.core": {
@@ -189,6 +190,7 @@
           "BucketSync.Core": "[1.0.0, )",
           "NBitcoin": "[10.0.1, )",
           "NBitcoin.Secp256k1": "[4.0.0, )",
+          "System.Formats.Cbor": "[10.0.0, )",
           "xunit": "[2.9.2, )"
         }
       },
@@ -216,6 +218,12 @@
         "dependencies": {
           "Microsoft.Extensions.Logging.Abstractions": "10.0.0"
         }
+      },
+      "System.Formats.Cbor": {
+        "type": "CentralTransitive",
+        "requested": "[10.0.0, )",
+        "resolved": "10.0.0",
+        "contentHash": "LwRJEV71pikJ2lR1VOAAejWT62LKlgIXI66tpdxjeRSQISKZoOuOFQt0ArXWrW5sPIQL0tisvqkg1tPleglYaQ=="
       }
     }
   }

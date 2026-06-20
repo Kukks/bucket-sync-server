@@ -26,6 +26,8 @@ public interface IAuthScheme
 public interface ICredentialStore
 {
     Task<string?> ResolveBucketAsync(string scheme, string credentialId, CancellationToken ct = default);
+    /// <summary>The full stored credential (incl. public key), or null if unregistered.</summary>
+    Task<VerifiedCredential?> GetAsync(string scheme, string credentialId, CancellationToken ct = default);
     /// <summary>Bind a credential to a bucket. Returns false if (scheme, credentialId) is already bound (to any bucket).</summary>
     Task<bool> BindAsync(VerifiedCredential credential, string bucketId, CancellationToken ct = default);
     Task<IReadOnlyList<VerifiedCredential>> ListAsync(string bucketId, CancellationToken ct = default);

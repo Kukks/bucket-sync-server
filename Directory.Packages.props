@@ -7,6 +7,7 @@
     </PackageVersion>
     <PackageVersion Include="NBitcoin" Version="10.0.1" />
     <PackageVersion Include="NBitcoin.Secp256k1" Version="4.0.0" />
+    <PackageVersion Include="System.Formats.Cbor" Version="10.0.0" />
     <PackageVersion Include="Npgsql" Version="10.0.0" />
     <PackageVersion Include="Testcontainers.PostgreSql" Version="4.4.0" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />

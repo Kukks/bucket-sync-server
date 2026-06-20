@@ -18,6 +18,18 @@ public sealed class PostgresCredentialStore : ICredentialStore
         return await cmd.ExecuteScalarAsync(ct) as string;
     }
 
+    public async Task<VerifiedCredential?> GetAsync(string scheme, string credentialId, CancellationToken ct = default)
+    {
+        await using var cmd = _ds.CreateCommand(
+            "SELECT scheme, credential_id, public_key, label FROM credentials WHERE scheme=@s AND credential_id=@c");
+        cmd.Parameters.AddWithValue("s", scheme);
+        cmd.Parameters.AddWithValue("c", credentialId);
+        await using var r = await cmd.ExecuteReaderAsync(ct);
+        if (!await r.ReadAsync(ct)) return null;
+        return new VerifiedCredential(r.GetString(0), r.GetString(1),
+            r.IsDBNull(2) ? null : (byte[])r[2], r.IsDBNull(3) ? null : r.GetString(3));
+    }
+
     public async Task<bool> BindAsync(VerifiedCredential credential, string bucketId, CancellationToken ct = default)
     {
         await using var cmd = _ds.CreateCommand(

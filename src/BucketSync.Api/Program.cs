@@ -12,6 +12,10 @@ builder.Services.ConfigureHttpJsonOptions(o =>
 builder.Services.AddOpenApi();
 
 builder.Services.AddSingleton<SchnorrAuthScheme>();
+builder.Services.AddSingleton(new PasskeyOptions(
+    builder.Configuration["Passkey:RpId"] ?? "localhost",
+    builder.Configuration["Passkey:Origin"] ?? "http://localhost"));
+builder.Services.AddSingleton<PasskeyAuthScheme>();
 builder.Services.AddSingleton<AuthService>();
 builder.Services.AddSingleton<IChangeNotifier, InProcChangeNotifier>();
 builder.Services.AddSingleton<SyncService>();
@@ -71,6 +75,49 @@ auth.MapPost("/schnorr/verify", async (SchnorrAuthRequest req, IChallengeStore c
     var cred = await VerifySchnorr(req, challenges, scheme, ct);
     if (cred is null) return Results.Unauthorized();
     var session = await authsvc.AuthenticateAsync(cred, req.Device, ct);
+    return session is null ? Results.Unauthorized() : Results.Ok(new TokenResponse(session.Token, session.ExpiresAt));
+});
+
+auth.MapPost("/passkey/challenge", async (IChallengeStore challenges, PasskeyAuthScheme scheme, CancellationToken ct) =>
+{
+    var c = await challenges.IssueAsync("passkey", ct);
+    return Results.Ok(new PasskeyChallengeResponse(c.Nonce, scheme.RpId, c.ExpiresAt));
+});
+
+// register — create ceremony. no bearer: create a bucket; bearer: add the passkey to my bucket.
+auth.MapPost("/passkey/register", async (PasskeyRegisterRequest req, HttpContext http, IChallengeStore challenges,
+    PasskeyAuthScheme scheme, AuthService authsvc, ISessionStore sessions, CancellationToken ct) =>
+{
+    var clientData = Base64Url.Decode(req.ClientDataJson);
+    var attestation = Base64Url.Decode(req.AttestationObject);
+    if (clientData is null || attestation is null) return Results.BadRequest();
+    var challenge = await challenges.ConsumeAsync(req.Nonce, ct);
+    if (challenge is null || challenge.Scheme != "passkey") return Results.Unauthorized();
+    var cred = scheme.VerifyRegistration(clientData, attestation, challenge);
+    if (cred is null) return Results.Unauthorized();
+
+    var bucketId = await BucketFromBearer(http, sessions);
+    if (bucketId is not null)
+        return await authsvc.AddCredentialAsync(bucketId, cred, ct) ? Results.NoContent() : Results.Conflict();
+    var session = await authsvc.CreateBucketAsync(cred, req.Device, ct);
+    return session is null ? Results.Conflict() : Results.Ok(new TokenResponse(session.Token, session.ExpiresAt));
+});
+
+// verify — get ceremony: authenticate with a registered passkey.
+auth.MapPost("/passkey/verify", async (PasskeyVerifyRequest req, IChallengeStore challenges,
+    PasskeyAuthScheme scheme, ICredentialStore credentials, AuthService authsvc, CancellationToken ct) =>
+{
+    var clientData = Base64Url.Decode(req.ClientDataJson);
+    var authData = Base64Url.Decode(req.AuthenticatorData);
+    var sig = Base64Url.Decode(req.Signature);
+    if (clientData is null || authData is null || sig is null) return Results.BadRequest();
+    var challenge = await challenges.ConsumeAsync(req.Nonce, ct);
+    if (challenge is null || challenge.Scheme != "passkey") return Results.Unauthorized();
+
+    var stored = await credentials.GetAsync("passkey", req.CredentialId, ct);
+    if (stored?.PublicKey is null) return Results.Unauthorized();
+    if (!scheme.VerifyAssertion(clientData, authData, sig, stored.PublicKey, challenge)) return Results.Unauthorized();
+    var session = await authsvc.AuthenticateAsync(stored, req.Device, ct);
     return session is null ? Results.Unauthorized() : Results.Ok(new TokenResponse(session.Token, session.ExpiresAt));
 });
 

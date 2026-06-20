@@ -11,6 +11,9 @@ public sealed class InMemoryCredentialStore : ICredentialStore
     public Task<string?> ResolveBucketAsync(string scheme, string credentialId, CancellationToken ct = default) =>
         Task.FromResult(_bucketByCred.TryGetValue((scheme, credentialId), out var b) ? b : null);
 
+    public Task<VerifiedCredential?> GetAsync(string scheme, string credentialId, CancellationToken ct = default) =>
+        Task.FromResult(_creds.TryGetValue((scheme, credentialId), out var c) ? c : null);
+
     public Task<bool> BindAsync(VerifiedCredential credential, string bucketId, CancellationToken ct = default)
     {
         var key = (credential.Scheme, credential.CredentialId);

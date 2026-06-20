@@ -73,6 +73,62 @@
         }
       }
     },
+    "/v1/auth/passkey/challenge": {
+      "post": {
+        "tags": [
+          "BucketSync.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/auth/passkey/register": {
+      "post": {
+        "tags": [
+          "BucketSync.Api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasskeyRegisterRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/auth/passkey/verify": {
+      "post": {
+        "tags": [
+          "BucketSync.Api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasskeyVerifyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/v1/auth/session": {
       "delete": {
         "tags": [
@@ -220,6 +276,66 @@
             "items": {
               "type": "string"
             }
+          }
+        }
+      },
+      "PasskeyRegisterRequest": {
+        "required": [
+          "nonce",
+          "clientDataJson",
+          "attestationObject",
+          "device"
+        ],
+        "type": "object",
+        "properties": {
+          "nonce": {
+            "type": "string"
+          },
+          "clientDataJson": {
+            "type": "string"
+          },
+          "attestationObject": {
+            "type": "string"
+          },
+          "device": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "PasskeyVerifyRequest": {
+        "required": [
+          "nonce",
+          "credentialId",
+          "clientDataJson",
+          "authenticatorData",
+          "signature",
+          "device"
+        ],
+        "type": "object",
+        "properties": {
+          "nonce": {
+            "type": "string"
+          },
+          "credentialId": {
+            "type": "string"
+          },
+          "clientDataJson": {
+            "type": "string"
+          },
+          "authenticatorData": {
+            "type": "string"
+          },
+          "signature": {
+            "type": "string"
+          },
+          "device": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },

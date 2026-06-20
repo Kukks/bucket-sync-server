@@ -18,6 +18,12 @@
         "resolved": "4.0.0",
         "contentHash": "VTw04h/JQKzReqAvLQHsGyGTwzaTR3NUmw6cA37mp6M0q1r9K3uUHCsO7uz1nq95BOD4vv4Ebp4TwHPf4l1NUA=="
       },
+      "System.Formats.Cbor": {
+        "type": "Direct",
+        "requested": "[10.0.0, )",
+        "resolved": "10.0.0",
+        "contentHash": "LwRJEV71pikJ2lR1VOAAejWT62LKlgIXI66tpdxjeRSQISKZoOuOFQt0ArXWrW5sPIQL0tisvqkg1tPleglYaQ=="
+      },
       "Microsoft.Extensions.Logging.Abstractions": {
         "type": "Transitive",
         "resolved": "1.0.0",

@@ -6,6 +6,12 @@ public record ChallengeResponse(string Nonce, DateTimeOffset ExpiresAt);
 public record TokenResponse(string Token, DateTimeOffset ExpiresAt);
 public record SchnorrAuthRequest(string Pubkey, string Nonce, string Signature, string? Device);
 
+// Passkey (WebAuthn). The binary fields (ClientDataJson, AttestationObject, AuthenticatorData,
+// Signature, CredentialId) are base64url strings, as a browser's WebAuthn API produces.
+public record PasskeyChallengeResponse(string Nonce, string RpId, DateTimeOffset ExpiresAt);
+public record PasskeyRegisterRequest(string Nonce, string ClientDataJson, string AttestationObject, string? Device);
+public record PasskeyVerifyRequest(string Nonce, string CredentialId, string ClientDataJson, string AuthenticatorData, string Signature, string? Device);
+
 public record HeadResponse(long CurrentSeq, string ContentHash);
 
 public record GetRequest(IReadOnlyList<string> Keys);

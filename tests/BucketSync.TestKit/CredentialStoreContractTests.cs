@@ -53,4 +53,16 @@ public abstract class CredentialStoreContractTests
         Assert.Contains(list, c => c.Scheme == "schnorr" && c.CredentialId == "a");
         Assert.Contains(list, c => c.Scheme == "passkey" && c.CredentialId == "b");
     }
+
+    [Fact]
+    public async Task Get_returns_the_stored_credential_with_public_key()
+    {
+        var s = await NewStoreAsync();
+        await s.BindAsync(Cred("passkey", "p1", new byte[] { 9, 9 }), "b");
+        var got = await s.GetAsync("passkey", "p1");
+        Assert.NotNull(got);
+        Assert.Equal("p1", got!.CredentialId);
+        Assert.Equal(new byte[] { 9, 9 }, got.PublicKey);
+        Assert.Null(await s.GetAsync("passkey", "missing"));
+    }
 }
