@@ -14,9 +14,9 @@ domain-specific types — so treat that wallet framing as **one example client**
 ## Status
 
 Phase 1 **implemented** (see `docs/superpowers/plans/2026-06-17-bucket-sync-server-phase-1.md`):
-Postgres + in-memory sync engine (CAS + cursor + atomic batch + SSE), Schnorr challenge auth,
-`cse-v1` opaque envelopes. All contract/unit/integration tests green. Phase 2 (TEE/`ecdh-tee-v1`
-recovery) remains deferred behind the existing `IAuthenticator` / envelope-scheme seams.
+Postgres + in-memory sync engine (CAS + cursor + atomic batch + SSE), **pluggable auth schemes**
+(schnorr + passkey, behind `IAuthScheme`), `cse-v1` opaque envelopes. All tests green. Phase 2
+(TEE/`ecdh-tee-v1` recovery) remains deferred behind the existing `IAuthScheme` / envelope-scheme seams.
 
 **Build & deploy (added after Phase 1, on `main`):** `Dockerfile` (framework-dependent) and
 `Dockerfile.aot` (NativeAOT — the server IS AOT-compatible via `CreateSlimBuilder` + the Request
@@ -24,16 +24,16 @@ Delegate Generator + a source-generated `JsonSerializerContext`); GitHub Actions
 (`.github/workflows/ci.yml`) builds/tests and publishes the AOT image to GHCR on `main`.
 **Reproducible build:** per-project `packages.lock.json` (locked-mode in CI), exact SDK pin
 (`global.json`), digest-pinned base images, deterministic IL — verified byte-identical across clean
-rebuilds. Full suite **98/0** (Docker required for the Postgres/e2e tests). Everything is **local
-only — not yet pushed** (no git remote configured). Deferred-by-choice (YAGNI, not blocking):
+rebuilds. Full suite **118/0** (Docker required for the Postgres/e2e tests). Pushed to
+**`github.com/Kukks/bucket-sync-server`** (public; CI green). Deferred-by-choice (YAGNI, not blocking):
 incremental bucket content-hash, `challenges` cleanup/index, `last_seen` write throttling.
 
 ## Locked decisions (rationale in the spec)
 
 - Optimistic **CAS per key** (plaintext `version`, ciphertext value) — **not** last-write-wins.
 - Diff via **monotonic per-bucket sequence cursor** (doubles as SSE `Last-Event-ID`) + a content-hash for integrity audits.
-- **One bucket per identity** (pubkey); keys namespaced by prefix.
-- Auth: challenge → **BIP-340 Schnorr / secp256k1** signature → **opaque bearer + session store**; pluggable `IAuthenticator` (verify with NBitcoin).
+- A bucket is reachable by a **set of credentials** of any scheme (a `(scheme, credentialId)` → bucket registry); `bucketId` is a random opaque id, never client-supplied. Keys namespaced by prefix.
+- Auth: **pluggable schemes** (`IAuthScheme` + `VerifiedCredential` + `AuthService`) → **opaque bearer + session store**. Ships **schnorr** (BIP-340/secp256k1 via NBitcoin) + **passkey** (WebAuthn ES256, hand-rolled; `System.Formats.Cbor`). `register` creates-or-adds a credential; `verify` authenticates.
 - Transport: **REST/JSON + SSE** (cursor = `Last-Event-ID`).
 - Batch: **all-or-nothing transaction** = one cursor bump = one SSE event.
 - Backend: **Postgres** behind `IBucketStore` (advisory-lock-per-bucket commit); in-memory double for tests.
