@@ -6,7 +6,6 @@ namespace BucketSync.TestKit;
 public abstract class BucketStoreContractTests
 {
     protected const string Bucket = "b-test";
-    protected const string Pubkey = "deadbeef";
 
     /// <summary>Return a fresh, empty store whose bucket "b-test" is already provisioned.</summary>
     protected abstract Task<IBucketStore> NewStoreAsync();

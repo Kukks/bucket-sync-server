@@ -9,12 +9,11 @@ public sealed class PostgresBucketStore : IBucketStore
     private readonly NpgsqlDataSource _ds;
     public PostgresBucketStore(NpgsqlDataSource ds) => _ds = ds;
 
-    public async Task EnsureBucketAsync(string bucketId, string ownerPubkey, CancellationToken ct = default)
+    public async Task EnsureBucketAsync(string bucketId, CancellationToken ct = default)
     {
         await using var cmd = _ds.CreateCommand(
-            "INSERT INTO buckets (bucket_id, owner_pubkey) VALUES (@b, @p) ON CONFLICT (bucket_id) DO NOTHING");
+            "INSERT INTO buckets (bucket_id) VALUES (@b) ON CONFLICT (bucket_id) DO NOTHING");
         cmd.Parameters.AddWithValue("b", bucketId);
-        cmd.Parameters.AddWithValue("p", ownerPubkey);
         await cmd.ExecuteNonQueryAsync(ct);
     }
 

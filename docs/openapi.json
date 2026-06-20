@@ -17,7 +17,19 @@
         }
       }
     },
-    "/v1/auth/challenge": {
+    "/v1/auth/schnorr/challenge": {
+      "post": {
+        "tags": [
+          "BucketSync.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/auth/schnorr/register": {
       "post": {
         "tags": [
           "BucketSync.Api"
@@ -26,7 +38,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ChallengeRequest"
+                "$ref": "#/components/schemas/SchnorrAuthRequest"
               }
             }
           },
@@ -39,7 +51,7 @@
         }
       }
     },
-    "/v1/auth/verify": {
+    "/v1/auth/schnorr/verify": {
       "post": {
         "tags": [
           "BucketSync.Api"
@@ -48,7 +60,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/VerifyRequest"
+                "$ref": "#/components/schemas/SchnorrAuthRequest"
               }
             }
           },
@@ -183,17 +195,6 @@
   },
   "components": {
     "schemas": {
-      "ChallengeRequest": {
-        "required": [
-          "pubkey"
-        ],
-        "type": "object",
-        "properties": {
-          "pubkey": {
-            "type": "string"
-          }
-        }
-      },
       "CommitRequest": {
         "required": [
           "ops"
@@ -222,7 +223,7 @@
           }
         }
       },
-      "VerifyRequest": {
+      "SchnorrAuthRequest": {
         "required": [
           "pubkey",
           "nonce",

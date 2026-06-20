@@ -6,7 +6,7 @@ namespace BucketSync.TestKit;
 public abstract class SessionStoreContractTests
 {
     protected abstract Task<ISessionStore> NewStoreAsync();
-    private static Principal P => new("pubkey-hex", "bucket-id");
+    private static Principal P => new("bucket-id", new VerifiedCredential("schnorr", "cred-1", null, null));
 
     [Fact]
     public async Task Create_then_validate_returns_bound_session()

@@ -19,7 +19,7 @@ public class SyncServiceCommitTests
     public async Task Successful_commit_publishes_new_seq_once()
     {
         var store = new InMemoryBucketStore();
-        await store.EnsureBucketAsync("b", "pk");
+        await store.EnsureBucketAsync("b");
         var notifier = new RecordingNotifier();
         var sync = new SyncService(store, notifier);
 
@@ -32,7 +32,7 @@ public class SyncServiceCommitTests
     public async Task Conflicted_commit_publishes_nothing()
     {
         var store = new InMemoryBucketStore();
-        await store.EnsureBucketAsync("b", "pk");
+        await store.EnsureBucketAsync("b");
         await store.CommitBatchAsync("b", new[] { Put("k", 0, new byte[] { 1 }) }); // k -> v1
         var notifier = new RecordingNotifier();
         var sync = new SyncService(store, notifier);

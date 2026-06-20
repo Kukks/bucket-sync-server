@@ -11,10 +11,9 @@ public record HealthResponse(string Status);
 /// NativeAOT / trimming. Add any new request/response DTO here.
 /// </summary>
 [JsonSerializable(typeof(HealthResponse))]
-[JsonSerializable(typeof(ChallengeRequest))]
 [JsonSerializable(typeof(ChallengeResponse))]
-[JsonSerializable(typeof(VerifyRequest))]
-[JsonSerializable(typeof(VerifyResponse))]
+[JsonSerializable(typeof(TokenResponse))]
+[JsonSerializable(typeof(SchnorrAuthRequest))]
 [JsonSerializable(typeof(HeadResponse))]
 [JsonSerializable(typeof(GetRequest))]
 [JsonSerializable(typeof(EntryDto))]

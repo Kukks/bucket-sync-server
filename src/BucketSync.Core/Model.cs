@@ -17,8 +17,11 @@ public sealed record DiffPage(
 
 public sealed record BucketHead(string BucketId, long CurrentSeq, string ContentHash);
 
-public sealed record Principal(string Pubkey, string BucketId);
+public sealed record Principal(string BucketId, VerifiedCredential Credential);
 
-public sealed record Challenge(string Nonce, string Pubkey, DateTimeOffset ExpiresAt);
+/// <summary>A credential proven by a scheme. CredentialId is unique within a scheme and maps to one bucket.</summary>
+public sealed record VerifiedCredential(string Scheme, string CredentialId, byte[]? PublicKey, string? Label);
+
+public sealed record Challenge(string Nonce, string Scheme, DateTimeOffset ExpiresAt);
 
 public sealed record Session(string Token, string BucketId, string? Device, DateTimeOffset ExpiresAt);

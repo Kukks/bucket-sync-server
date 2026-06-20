@@ -16,7 +16,7 @@ public class PostgresBucketStoreTests : BucketStoreContractTests
         // Each call gets a unique physical bucket so concurrent store instances are isolated.
         var physicalBucket = $"test-{Guid.NewGuid():N}";
         var inner = new PostgresBucketStore(_fx.DataSource);
-        await inner.EnsureBucketAsync(physicalBucket, Pubkey);
+        await inner.EnsureBucketAsync(physicalBucket);
         // Return a wrapper that redirects the well-known "b-test" bucket to the unique physical one.
         return new ScopedBucketStore(inner, Bucket, physicalBucket);
     }
@@ -40,8 +40,8 @@ public class PostgresBucketStoreTests : BucketStoreContractTests
 
         private string Map(string id) => id == _logical ? _physical : id;
 
-        public Task EnsureBucketAsync(string bucketId, string ownerPubkey, CancellationToken ct = default) =>
-            _inner.EnsureBucketAsync(Map(bucketId), ownerPubkey, ct);
+        public Task EnsureBucketAsync(string bucketId, CancellationToken ct = default) =>
+            _inner.EnsureBucketAsync(Map(bucketId), ct);
 
         public Task<BucketHead> GetHeadAsync(string bucketId, CancellationToken ct = default) =>
             _inner.GetHeadAsync(Map(bucketId), ct);

@@ -10,17 +10,17 @@ public sealed class PostgresChallengeStore : IChallengeStore
     private readonly NpgsqlDataSource _ds;
     public PostgresChallengeStore(NpgsqlDataSource ds) => _ds = ds;
 
-    public async Task<Challenge> IssueAsync(string pubkey, CancellationToken ct = default)
+    public async Task<Challenge> IssueAsync(string scheme, CancellationToken ct = default)
     {
         var nonce = Convert.ToHexStringLower(RandomNumberGenerator.GetBytes(32));
         var expires = DateTimeOffset.UtcNow.Add(Ttl);
         await using var cmd = _ds.CreateCommand(
-            "INSERT INTO challenges (nonce, pubkey, expires_at) VALUES (@n, @p, @e)");
+            "INSERT INTO challenges (nonce, scheme, expires_at) VALUES (@n, @s, @e)");
         cmd.Parameters.AddWithValue("n", nonce);
-        cmd.Parameters.AddWithValue("p", pubkey);
+        cmd.Parameters.AddWithValue("s", scheme);
         cmd.Parameters.AddWithValue("e", expires);
         await cmd.ExecuteNonQueryAsync(ct);
-        return new Challenge(nonce, pubkey, expires);
+        return new Challenge(nonce, scheme, expires);
     }
 
     public async Task<Challenge?> ConsumeAsync(string nonce, CancellationToken ct = default)
@@ -29,7 +29,7 @@ public sealed class PostgresChallengeStore : IChallengeStore
         await using var cmd = _ds.CreateCommand(
             @"UPDATE challenges SET consumed = true
               WHERE nonce = @n AND consumed = false AND expires_at > now()
-              RETURNING pubkey, expires_at");
+              RETURNING scheme, expires_at");
         cmd.Parameters.AddWithValue("n", nonce);
         await using var r = await cmd.ExecuteReaderAsync(ct);
         if (!await r.ReadAsync(ct)) return null;

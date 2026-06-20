@@ -8,10 +8,10 @@ public sealed class InMemoryChallengeStore : IChallengeStore
     public static readonly TimeSpan Ttl = TimeSpan.FromMinutes(5);
     private readonly ConcurrentDictionary<string, Challenge> _byNonce = new(StringComparer.Ordinal);
 
-    public Task<Challenge> IssueAsync(string pubkey, CancellationToken ct = default)
+    public Task<Challenge> IssueAsync(string scheme, CancellationToken ct = default)
     {
         var nonce = Convert.ToHexStringLower(RandomNumberGenerator.GetBytes(32));
-        var c = new Challenge(nonce, pubkey, DateTimeOffset.UtcNow.Add(Ttl));
+        var c = new Challenge(nonce, scheme, DateTimeOffset.UtcNow.Add(Ttl));
         _byNonce[nonce] = c;
         return Task.FromResult(c);
     }

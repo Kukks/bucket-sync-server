@@ -14,7 +14,7 @@ public sealed class InMemoryBucketStore : IBucketStore
 
     private readonly ConcurrentDictionary<string, Bucket> _buckets = new(StringComparer.Ordinal);
 
-    public Task EnsureBucketAsync(string bucketId, string ownerPubkey, CancellationToken ct = default)
+    public Task EnsureBucketAsync(string bucketId, CancellationToken ct = default)
     {
         _buckets.GetOrAdd(bucketId, _ => new Bucket());
         return Task.CompletedTask;

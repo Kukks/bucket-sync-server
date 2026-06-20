@@ -11,7 +11,8 @@ builder.Services.ConfigureHttpJsonOptions(o =>
     o.SerializerOptions.TypeInfoResolverChain.Insert(0, AppJsonContext.Default));
 builder.Services.AddOpenApi();
 
-builder.Services.AddSingleton<IAuthenticator, SchnorrAuthenticator>();
+builder.Services.AddSingleton<SchnorrAuthScheme>();
+builder.Services.AddSingleton<AuthService>();
 builder.Services.AddSingleton<IChangeNotifier, InProcChangeNotifier>();
 builder.Services.AddSingleton<SyncService>();
 
@@ -22,12 +23,14 @@ if (string.Equals(backend, "Postgres", StringComparison.OrdinalIgnoreCase))
         ?? throw new InvalidOperationException("ConnectionStrings:Postgres required when Backend=Postgres");
     builder.Services.AddSingleton(NpgsqlDataSource.Create(cs));
     builder.Services.AddSingleton<IBucketStore, PostgresBucketStore>();
+    builder.Services.AddSingleton<ICredentialStore, PostgresCredentialStore>();
     builder.Services.AddSingleton<IChallengeStore, PostgresChallengeStore>();
     builder.Services.AddSingleton<ISessionStore, PostgresSessionStore>();
 }
 else
 {
     builder.Services.AddSingleton<IBucketStore, InMemoryBucketStore>();
+    builder.Services.AddSingleton<ICredentialStore, InMemoryCredentialStore>();
     builder.Services.AddSingleton<IChallengeStore, InMemoryChallengeStore>();
     builder.Services.AddSingleton<ISessionStore, InMemorySessionStore>();
 }
@@ -39,32 +42,38 @@ if (string.Equals(backend, "Postgres", StringComparison.OrdinalIgnoreCase))
 
 app.MapGet("/health", () => Results.Ok(new HealthResponse("ok")));
 
-// ---- auth (Task 19) ----
+// ---- auth: pluggable schemes (challenge -> register/verify -> opaque bearer + session) ----
 var auth = app.MapGroup("/v1/auth");
-auth.MapPost("/challenge", async (ChallengeRequest req, IChallengeStore challenges, CancellationToken ct) =>
+
+auth.MapPost("/schnorr/challenge", async (IChallengeStore challenges, CancellationToken ct) =>
 {
-    if (string.IsNullOrWhiteSpace(req.Pubkey)) return Results.BadRequest();
-    var c = await challenges.IssueAsync(req.Pubkey, ct);
+    var c = await challenges.IssueAsync("schnorr", ct);
     return Results.Ok(new ChallengeResponse(c.Nonce, c.ExpiresAt));
 });
-auth.MapPost("/verify", async (VerifyRequest req, IChallengeStore challenges, IAuthenticator authenticator,
-    ISessionStore sessions, IBucketStore store, CancellationToken ct) =>
+
+// register — no bearer: create a bucket for a brand-new pubkey; bearer: add this pubkey to my bucket.
+auth.MapPost("/schnorr/register", async (SchnorrAuthRequest req, HttpContext http, IChallengeStore challenges,
+    SchnorrAuthScheme scheme, AuthService authsvc, ISessionStore sessions, CancellationToken ct) =>
 {
-    var challenge = await challenges.ConsumeAsync(req.Nonce, ct);
-    if (challenge is null || !string.Equals(challenge.Pubkey, req.Pubkey, StringComparison.Ordinal))
-        return Results.Unauthorized();
-
-    byte[] sig;
-    try { sig = Convert.FromHexString(req.Signature); }
-    catch (FormatException) { return Results.Unauthorized(); }
-
-    var principal = await authenticator.VerifyAsync(challenge, sig, ct);
-    if (principal is null) return Results.Unauthorized();
-
-    await store.EnsureBucketAsync(principal.BucketId, principal.Pubkey, ct); // TOFU provision
-    var session = await sessions.CreateAsync(principal, req.Device, ct);
-    return Results.Ok(new VerifyResponse(session.Token, session.ExpiresAt));
+    var cred = await VerifySchnorr(req, challenges, scheme, ct);
+    if (cred is null) return Results.Unauthorized();
+    var bucketId = await BucketFromBearer(http, sessions);
+    if (bucketId is not null)
+        return await authsvc.AddCredentialAsync(bucketId, cred, ct) ? Results.NoContent() : Results.Conflict();
+    var session = await authsvc.CreateBucketAsync(cred, req.Device, ct);
+    return session is null ? Results.Conflict() : Results.Ok(new TokenResponse(session.Token, session.ExpiresAt));
 });
+
+// verify — authenticate an already-registered pubkey.
+auth.MapPost("/schnorr/verify", async (SchnorrAuthRequest req, IChallengeStore challenges,
+    SchnorrAuthScheme scheme, AuthService authsvc, CancellationToken ct) =>
+{
+    var cred = await VerifySchnorr(req, challenges, scheme, ct);
+    if (cred is null) return Results.Unauthorized();
+    var session = await authsvc.AuthenticateAsync(cred, req.Device, ct);
+    return session is null ? Results.Unauthorized() : Results.Ok(new TokenResponse(session.Token, session.ExpiresAt));
+});
+
 auth.MapDelete("/session", async (HttpContext http, ISessionStore sessions, CancellationToken ct) =>
 {
     var token = BearerAuthFilter.ExtractBearer(http.Request)!; // filter guarantees non-null
@@ -72,7 +81,7 @@ auth.MapDelete("/session", async (HttpContext http, ISessionStore sessions, Canc
     return Results.NoContent();
 }).AddEndpointFilter<BearerAuthFilter>();
 
-// ---- bucket (Tasks 21–22) ----
+// ---- bucket ----
 var bucket = app.MapGroup("/v1/bucket").AddEndpointFilter<BearerAuthFilter>();
 bucket.MapGet("/head", async (HttpContext http, IBucketStore store, CancellationToken ct) =>
 {
@@ -123,6 +132,28 @@ bucket.MapGet("/stream", async (HttpContext http, SyncService sync, Cancellation
 });
 
 app.Run();
+
+// Consume the challenge, verify the BIP-340 proof, and yield the credential (or null on any failure).
+static async Task<VerifiedCredential?> VerifySchnorr(SchnorrAuthRequest req, IChallengeStore challenges, SchnorrAuthScheme scheme, CancellationToken ct)
+{
+    if (string.IsNullOrWhiteSpace(req.Pubkey) || string.IsNullOrWhiteSpace(req.Nonce) || string.IsNullOrWhiteSpace(req.Signature))
+        return null;
+    var challenge = await challenges.ConsumeAsync(req.Nonce, ct);
+    if (challenge is null || challenge.Scheme != "schnorr") return null;
+    byte[] sig;
+    try { sig = Convert.FromHexString(req.Signature); }
+    catch (FormatException) { return null; }
+    return scheme.Verify(req.Pubkey, challenge, sig);
+}
+
+// Optional bearer: the bucket id of a valid session, or null if absent/invalid (used by register).
+static async Task<string?> BucketFromBearer(HttpContext http, ISessionStore sessions)
+{
+    var token = BearerAuthFilter.ExtractBearer(http.Request);
+    if (token is null) return null;
+    var session = await sessions.ValidateAsync(token, http.RequestAborted);
+    return session?.BucketId;
+}
 
 static long ParseLastEventId(HttpRequest req)
 {

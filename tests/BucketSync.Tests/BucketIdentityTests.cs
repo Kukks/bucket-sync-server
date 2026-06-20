@@ -5,18 +5,14 @@ namespace BucketSync.Tests;
 public class BucketIdentityTests
 {
     [Fact]
-    public void Derive_is_deterministic_and_independent_of_hex_case()
+    public void NewBucketId_is_64_lowercase_hex_chars()
     {
-        const string pk = "18845781f631c48f1c9709e23092067d06837f30aa0cd0544ac887fe91ddd166";
-        Assert.Equal(BucketIdentity.Derive(pk), BucketIdentity.Derive(pk.ToUpperInvariant()));
-        Assert.Equal(64, BucketIdentity.Derive(pk).Length); // 32-byte hash, hex
+        var id = BucketIdentity.NewBucketId();
+        Assert.Equal(64, id.Length);          // 32 bytes hex
+        Assert.Matches("^[0-9a-f]{64}$", id);
     }
 
     [Fact]
-    public void Derive_differs_for_different_pubkeys()
-    {
-        var a = BucketIdentity.Derive("00".PadRight(64, '0'));
-        var b = BucketIdentity.Derive("01".PadRight(64, '0'));
-        Assert.NotEqual(a, b);
-    }
+    public void NewBucketId_is_unique_per_call()
+        => Assert.NotEqual(BucketIdentity.NewBucketId(), BucketIdentity.NewBucketId());
 }

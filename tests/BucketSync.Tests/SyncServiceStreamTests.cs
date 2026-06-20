@@ -8,7 +8,7 @@ public class SyncServiceStreamTests
 
     private static async Task<SyncService> NewAsync(InMemoryBucketStore store, InProcChangeNotifier notifier)
     {
-        await store.EnsureBucketAsync("b", "pk");
+        await store.EnsureBucketAsync("b");
         return new SyncService(store, notifier);
     }
 

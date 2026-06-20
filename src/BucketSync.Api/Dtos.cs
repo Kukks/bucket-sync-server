@@ -2,10 +2,9 @@ using BucketSync.Core;
 
 namespace BucketSync.Api;
 
-public record ChallengeRequest(string Pubkey);
 public record ChallengeResponse(string Nonce, DateTimeOffset ExpiresAt);
-public record VerifyRequest(string Pubkey, string Nonce, string Signature, string? Device);
-public record VerifyResponse(string Token, DateTimeOffset ExpiresAt);
+public record TokenResponse(string Token, DateTimeOffset ExpiresAt);
+public record SchnorrAuthRequest(string Pubkey, string Nonce, string Signature, string? Device);
 
 public record HeadResponse(long CurrentSeq, string ContentHash);
 
