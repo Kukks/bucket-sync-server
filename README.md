@@ -65,8 +65,9 @@ NativeAOT-safe, so the document is produced at build instead.
 
 | Method | Route | Auth | Purpose |
 |---|---|---|---|
-| POST | `/v1/auth/challenge` | none | `{pubkey}` → `{nonce, expiresAt}` |
-| POST | `/v1/auth/verify` | none | `{pubkey, nonce, signature, device?}` → `{token, expiresAt}`; provisions bucket (TOFU) |
+| POST | `/v1/auth/{scheme}/challenge` | none | → `{nonce, expiresAt}` (passkey also returns `rpId`) |
+| POST | `/v1/auth/{scheme}/register` | optional bearer | prove a credential → **creates a bucket** (no bearer; 409 if it already exists) or **adds it** to your bucket (bearer; 204) |
+| POST | `/v1/auth/{scheme}/verify` | none | authenticate a registered credential → `{token, expiresAt}` (401 if unknown) |
 | DELETE | `/v1/auth/session` | bearer | revoke current session |
 | GET | `/v1/bucket/head` | bearer | → `{currentSeq, contentHash}` |
 | POST | `/v1/bucket/get` | bearer | `{keys[]}` → `{entries[]}` |
@@ -76,12 +77,19 @@ NativeAOT-safe, so the document is produced at build instead.
 
 `value` fields are base64 in JSON and **opaque** to the server. A reference client-side envelope library (`src/BucketSync.Cse`, `CseV1Envelope.Seal/Open`) produces these `cse-v1` values; the server runtime never references it. The wire format is documented in [`docs/cse-v1.md`](docs/cse-v1.md) for non-C# SDKs.
 
-### Auth signature scheme
+### Auth — pluggable schemes
 
-Bearer auth is challenge → BIP-340 Schnorr signature. The signed 32-byte message is
-`SHA-256( "bucket-sync:auth:v1" || nonceBytes )`. `pubkey` is the 32-byte x-only key (hex),
-`signature` is 64-byte BIP-340 (hex). The server verifies with NBitcoin and derives
-`bucketId = SHA-256(pubkey)` — never client-supplied.
+`{scheme}` is `schnorr` or `passkey`. A scheme proves a *credential*; the server maps
+`(scheme, credentialId)` → a bucket, so a bucket is reachable by a **set** of credentials of any
+scheme. `register` with no bearer creates a bucket (409 if the credential already exists); `register`
+with a bearer adds the credential to your current bucket; `verify` authenticates a registered one.
+`bucketId` is an opaque server-side id — never client-supplied.
+
+- **`schnorr`** — secp256k1 / BIP-340. The credential is the x-only pubkey, proven by a signature over
+  `SHA-256("bucket-sync:auth:v1" || nonceBytes)`. Body `{pubkey, nonce, signature, device?}` (hex).
+- **`passkey`** — WebAuthn (ES256). `register` → `{nonce, clientDataJSON, attestationObject}`;
+  `verify` → `{nonce, credentialId, clientDataJSON, authenticatorData, signature}` (binary fields
+  base64url). Attestation is not verified; the assertion is checked against the registered COSE key.
 
 ### Client sync loop
 
