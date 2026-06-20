@@ -4,5 +4,5 @@ obj/
 .vs/
 *.user
 
-# Superpowers plans are working-tree only (never committed); specs ARE tracked.
-docs/superpowers/plans/
+# Superpowers specs AND plans are working-tree only (never committed).
+docs/superpowers/
