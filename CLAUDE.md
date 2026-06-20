@@ -1,11 +1,11 @@
-# wallet-sync-server
+# bucket-sync-server
 
 Generic, end-to-end-encrypted backup / restore / sync server — a schema-agnostic, multi-device, encrypted key-value **bucket sync protocol**. Interface-driven C#. The server only ever stores **opaque ciphertext** — it never reads value contents, so it stays agnostic to whatever any client chooses to store.
 
 ## Source of truth
 
 The design spec is authoritative — **read it before any work**:
-`docs/superpowers/specs/2026-06-17-wallet-sync-server-design.md`
+`docs/superpowers/specs/2026-06-17-bucket-sync-server-design.md`
 
 *Historical note: the spec is written against the original motivating use case (encrypted
 Bitcoin-wallet state sync). The protocol and server are fully generic — opaque buckets, no
@@ -13,7 +13,7 @@ domain-specific types — so treat that wallet framing as **one example client**
 
 ## Status
 
-Phase 1 **implemented** (see `docs/superpowers/plans/2026-06-17-wallet-sync-server-phase-1.md`):
+Phase 1 **implemented** (see `docs/superpowers/plans/2026-06-17-bucket-sync-server-phase-1.md`):
 Postgres + in-memory sync engine (CAS + cursor + atomic batch + SSE), Schnorr challenge auth,
 `cse-v1` opaque envelopes. All contract/unit/integration tests green. Phase 2 (TEE/`ecdh-tee-v1`
 recovery) remains deferred behind the existing `IAuthenticator` / envelope-scheme seams.

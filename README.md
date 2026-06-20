@@ -1,4 +1,4 @@
-# wallet-sync-server
+# bucket-sync-server
 
 Generic, end-to-end-encrypted backup / restore / sync server — a schema-agnostic, encrypted
 key-value **bucket sync protocol**. Interface-driven C# (.NET 10). The server stores **opaque
