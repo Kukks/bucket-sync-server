@@ -72,7 +72,8 @@ NativeAOT-safe, so the document is produced at build instead.
 | GET | `/v1/bucket/head` | bearer | → `{currentSeq, contentHash}` |
 | POST | `/v1/bucket/get` | bearer | `{keys[]}` → `{entries[]}` |
 | POST | `/v1/bucket/commit` | bearer | `{ops[]}` → `CommitResponse`; **409** on CAS conflict |
-| GET | `/v1/bucket/diff?since=N&limit=M` | bearer | → `{entries[], nextSeq, hasMore}` (`limit` = max commits) |
+| GET | `/v1/bucket/diff?since=N&limit=M` | bearer | → `{entries[], nextSeq, hasMore}` (`limit` = max commits) — the sync cursor |
+| GET | `/v1/bucket/changes?since=<rfc3339>&limit=M` | bearer | → `{entries[], nextSince, hasMore}` — time-based **audit** query (approximate; not a sync cursor) |
 | GET | `/v1/bucket/stream` | bearer | SSE; `Last-Event-ID: N` resumes; emits new `seq` values |
 
 `value` fields are base64 in JSON and **opaque** to the server. A reference client-side envelope library (`src/BucketSync.Cse`, `CseV1Envelope.Seal/Open`) produces these `cse-v1` values; the server runtime never references it. The wire format is documented in [`docs/cse-v1.md`](docs/cse-v1.md) for non-C# SDKs.
