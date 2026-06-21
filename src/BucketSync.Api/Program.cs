@@ -17,6 +17,7 @@ builder.Services.AddSingleton(new PasskeyOptions(
     builder.Configuration["Passkey:Origin"] ?? "http://localhost"));
 builder.Services.AddSingleton<PasskeyAuthScheme>();
 builder.Services.AddSingleton<AuthService>();
+builder.Services.AddSingleton<TimeProvider>(TimeProvider.System);
 builder.Services.AddSingleton<IChangeNotifier, InProcChangeNotifier>();
 builder.Services.AddSingleton<SyncService>();
 
@@ -158,6 +159,13 @@ bucket.MapGet("/diff", async (HttpContext http, long since, int? limit, IBucketS
     var b = (string)http.Items[BearerAuthFilter.BucketIdItem]!;
     var page = await store.DiffAsync(b, since, limit ?? 100, ct);
     return Results.Ok(new DiffResponse(page.Entries.Select(EntryDto.From).ToList(), page.NextSeq, page.HasMore));
+});
+// Time-based audit query (approximate — NOT a sync cursor; use /diff with the seq cursor for sync).
+bucket.MapGet("/changes", async (HttpContext http, DateTimeOffset since, int? limit, IBucketStore store, CancellationToken ct) =>
+{
+    var b = (string)http.Items[BearerAuthFilter.BucketIdItem]!;
+    var page = await store.ChangesSinceAsync(b, since, limit ?? 100, ct);
+    return Results.Ok(new ChangesResponse(page.Entries.Select(EntryDto.From).ToList(), page.NextSince, page.HasMore));
 });
 bucket.MapGet("/stream", async (HttpContext http, SyncService sync, CancellationToken ct) =>
 {

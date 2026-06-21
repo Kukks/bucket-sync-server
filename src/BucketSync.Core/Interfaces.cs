@@ -7,6 +7,9 @@ public interface IBucketStore
     Task<IReadOnlyList<BucketEntry>> GetBatchAsync(string bucketId, IReadOnlyList<string> keys, CancellationToken ct = default);
     Task<CommitResult> CommitBatchAsync(string bucketId, IReadOnlyList<WriteOp> ops, CancellationToken ct = default);
     Task<DiffPage> DiffAsync(string bucketId, long sinceSeq, int limit, CancellationToken ct = default);
+    /// <summary>Audit query: entries changed after <paramref name="since"/> (commit time), paged by distinct
+    /// timestamp (batch-respecting) up to <paramref name="limit"/> commits. Approximate — not a sync cursor.</summary>
+    Task<ChangesPage> ChangesSinceAsync(string bucketId, DateTimeOffset since, int limit, CancellationToken ct = default);
 }
 
 /// <summary>

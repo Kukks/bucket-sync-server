@@ -7,7 +7,12 @@ namespace BucketSync.Postgres;
 public sealed class PostgresBucketStore : IBucketStore
 {
     private readonly NpgsqlDataSource _ds;
-    public PostgresBucketStore(NpgsqlDataSource ds) => _ds = ds;
+    private readonly TimeProvider _time;
+    public PostgresBucketStore(NpgsqlDataSource ds, TimeProvider? time = null)
+    {
+        _ds = ds;
+        _time = time ?? TimeProvider.System;
+    }
 
     public async Task EnsureBucketAsync(string bucketId, CancellationToken ct = default)
     {
@@ -31,13 +36,13 @@ public sealed class PostgresBucketStore : IBucketStore
         var list = new List<BucketEntry>();
         if (keys.Count == 0) return list;
         await using var cmd = _ds.CreateCommand(
-            "SELECT key, version, seq, content_hash, scheme, deleted, value FROM entries WHERE bucket_id=@b AND key = ANY(@keys)");
+            "SELECT key, version, seq, content_hash, scheme, deleted, value, updated_at FROM entries WHERE bucket_id=@b AND key = ANY(@keys)");
         cmd.Parameters.AddWithValue("b", bucketId);
         cmd.Parameters.AddWithValue("keys", keys.ToArray());
         await using var r = await cmd.ExecuteReaderAsync(ct);
         while (await r.ReadAsync(ct))
             list.Add(new BucketEntry(bucketId, r.GetString(0), r.GetInt64(1), r.GetInt64(2),
-                r.GetString(3), r.GetString(4), r.GetBoolean(5), (byte[])r[6]));
+                r.GetString(3), r.GetString(4), r.GetBoolean(5), (byte[])r[6], r.GetFieldValue<DateTimeOffset>(7)));
         return list;
     }
 
@@ -99,16 +104,17 @@ public sealed class PostgresBucketStore : IBucketStore
             await bump.ExecuteNonQueryAsync(ct);
         }
 
+        var now = _time.GetUtcNow();
         foreach (var op in ops)
         {
             long have = current.TryGetValue(op.Key, out var v) ? v : 0;
             var value = op.Delete ? Array.Empty<byte>() : op.Value;
             await using var up = new NpgsqlCommand(
                 @"INSERT INTO entries (bucket_id, key, version, seq, content_hash, scheme, deleted, value, updated_at)
-                  VALUES (@b, @k, @ver, @seq, @ch, @scheme, @del, @val, now())
+                  VALUES (@b, @k, @ver, @seq, @ch, @scheme, @del, @val, @ts)
                   ON CONFLICT (bucket_id, key) DO UPDATE SET
                     version=excluded.version, seq=excluded.seq, content_hash=excluded.content_hash,
-                    scheme=excluded.scheme, deleted=excluded.deleted, value=excluded.value, updated_at=now()", conn, tx);
+                    scheme=excluded.scheme, deleted=excluded.deleted, value=excluded.value, updated_at=excluded.updated_at", conn, tx);
             up.Parameters.AddWithValue("b", bucketId);
             up.Parameters.AddWithValue("k", op.Key);
             up.Parameters.AddWithValue("ver", have + 1);
@@ -117,6 +123,7 @@ public sealed class PostgresBucketStore : IBucketStore
             up.Parameters.AddWithValue("scheme", op.Scheme);
             up.Parameters.AddWithValue("del", op.Delete);
             up.Parameters.Add(new NpgsqlParameter("val", NpgsqlDbType.Bytea) { Value = value });
+            up.Parameters.AddWithValue("ts", now);
             await up.ExecuteNonQueryAsync(ct);
         }
 
@@ -127,7 +134,7 @@ public sealed class PostgresBucketStore : IBucketStore
             allCmd.Parameters.AddWithValue("b", bucketId);
             await using var r = await allCmd.ExecuteReaderAsync(ct);
             while (await r.ReadAsync(ct))
-                all.Add(new BucketEntry(bucketId, r.GetString(0), r.GetInt64(1), 0, r.GetString(2), "", r.GetBoolean(3), Array.Empty<byte>()));
+                all.Add(new BucketEntry(bucketId, r.GetString(0), r.GetInt64(1), 0, r.GetString(2), "", r.GetBoolean(3), Array.Empty<byte>(), default));
         }
         var contentHash = Hashing.BucketContentHash(all);
         await using (var setHash = new NpgsqlCommand("UPDATE buckets SET content_hash=@h WHERE bucket_id=@b", conn, tx))
@@ -162,7 +169,7 @@ public sealed class PostgresBucketStore : IBucketStore
 
         var entries = new List<BucketEntry>();
         await using (var pageCmd = _ds.CreateCommand(
-            @"SELECT key, version, seq, content_hash, scheme, deleted, value FROM entries
+            @"SELECT key, version, seq, content_hash, scheme, deleted, value, updated_at FROM entries
               WHERE bucket_id=@b AND seq > @s AND seq <= @cut ORDER BY seq, key"))
         {
             pageCmd.Parameters.AddWithValue("b", bucketId);
@@ -171,7 +178,7 @@ public sealed class PostgresBucketStore : IBucketStore
             await using var r = await pageCmd.ExecuteReaderAsync(ct);
             while (await r.ReadAsync(ct))
                 entries.Add(new BucketEntry(bucketId, r.GetString(0), r.GetInt64(1), r.GetInt64(2),
-                    r.GetString(3), r.GetString(4), r.GetBoolean(5), (byte[])r[6]));
+                    r.GetString(3), r.GetString(4), r.GetBoolean(5), (byte[])r[6], r.GetFieldValue<DateTimeOffset>(7)));
         }
 
         bool hasMore;
@@ -182,5 +189,49 @@ public sealed class PostgresBucketStore : IBucketStore
             hasMore = (bool)(await moreCmd.ExecuteScalarAsync(ct))!;
         }
         return new DiffPage(entries, cutoff.Value, hasMore);
+    }
+
+    public async Task<ChangesPage> ChangesSinceAsync(string bucketId, DateTimeOffset since, int limit, CancellationToken ct = default)
+    {
+        if (limit <= 0) throw new ArgumentOutOfRangeException(nameof(limit));
+
+        // cutoff = the (limit)-th distinct updated_at greater than `since` (paging respects commit batches,
+        // since every entry in one commit shares the same updated_at).
+        DateTimeOffset? cutoff;
+        await using (var cutCmd = _ds.CreateCommand(
+            "SELECT updated_at FROM entries WHERE bucket_id=@b AND updated_at > @s GROUP BY updated_at ORDER BY updated_at LIMIT @lim"))
+        {
+            cutCmd.Parameters.AddWithValue("b", bucketId);
+            cutCmd.Parameters.AddWithValue("s", since);
+            cutCmd.Parameters.AddWithValue("lim", limit);
+            DateTimeOffset? last = null;
+            await using var r = await cutCmd.ExecuteReaderAsync(ct);
+            while (await r.ReadAsync(ct)) last = r.GetFieldValue<DateTimeOffset>(0);
+            cutoff = last;
+        }
+        if (cutoff is null) return new ChangesPage(Array.Empty<BucketEntry>(), since, false);
+
+        var entries = new List<BucketEntry>();
+        await using (var pageCmd = _ds.CreateCommand(
+            @"SELECT key, version, seq, content_hash, scheme, deleted, value, updated_at FROM entries
+              WHERE bucket_id=@b AND updated_at > @s AND updated_at <= @cut ORDER BY updated_at, key"))
+        {
+            pageCmd.Parameters.AddWithValue("b", bucketId);
+            pageCmd.Parameters.AddWithValue("s", since);
+            pageCmd.Parameters.AddWithValue("cut", cutoff.Value);
+            await using var r = await pageCmd.ExecuteReaderAsync(ct);
+            while (await r.ReadAsync(ct))
+                entries.Add(new BucketEntry(bucketId, r.GetString(0), r.GetInt64(1), r.GetInt64(2),
+                    r.GetString(3), r.GetString(4), r.GetBoolean(5), (byte[])r[6], r.GetFieldValue<DateTimeOffset>(7)));
+        }
+
+        bool hasMore;
+        await using (var moreCmd = _ds.CreateCommand("SELECT EXISTS(SELECT 1 FROM entries WHERE bucket_id=@b AND updated_at > @cut)"))
+        {
+            moreCmd.Parameters.AddWithValue("b", bucketId);
+            moreCmd.Parameters.AddWithValue("cut", cutoff.Value);
+            hasMore = (bool)(await moreCmd.ExecuteScalarAsync(ct))!;
+        }
+        return new ChangesPage(entries, cutoff.Value, hasMore);
     }
 }

@@ -2,7 +2,7 @@ namespace BucketSync.Core;
 
 public sealed record BucketEntry(
     string BucketId, string Key, long Version, long Seq,
-    string ContentHash, string Scheme, bool Deleted, byte[] Value);
+    string ContentHash, string Scheme, bool Deleted, byte[] Value, DateTimeOffset UpdatedAt);
 
 public sealed record WriteOp(
     string Key, long ExpectedVersion, string Scheme, byte[] Value, bool Delete);
@@ -14,6 +14,11 @@ public sealed record CommitResult(
 
 public sealed record DiffPage(
     IReadOnlyList<BucketEntry> Entries, long NextSeq, bool HasMore);
+
+/// <summary>A time-range page of changes (audit query). NextSince is the max updated_at returned
+/// (the resume cursor). Approximate — NOT an exactly-once sync cursor; use the seq cursor for sync.</summary>
+public sealed record ChangesPage(
+    IReadOnlyList<BucketEntry> Entries, DateTimeOffset NextSince, bool HasMore);
 
 public sealed record BucketHead(string BucketId, long CurrentSeq, string ContentHash);
 

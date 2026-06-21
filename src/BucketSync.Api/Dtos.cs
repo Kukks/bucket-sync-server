@@ -15,10 +15,10 @@ public record PasskeyVerifyRequest(string Nonce, string CredentialId, string Cli
 public record HeadResponse(long CurrentSeq, string ContentHash);
 
 public record GetRequest(IReadOnlyList<string> Keys);
-public record EntryDto(string Key, long Version, long Seq, string ContentHash, string Scheme, bool Deleted, string Value)
+public record EntryDto(string Key, long Version, long Seq, string ContentHash, string Scheme, bool Deleted, string Value, DateTimeOffset UpdatedAt)
 {
     public static EntryDto From(BucketEntry e) =>
-        new(e.Key, e.Version, e.Seq, e.ContentHash, e.Scheme, e.Deleted, Convert.ToBase64String(e.Value));
+        new(e.Key, e.Version, e.Seq, e.ContentHash, e.Scheme, e.Deleted, Convert.ToBase64String(e.Value), e.UpdatedAt);
 }
 public record EntriesResponse(IReadOnlyList<EntryDto> Entries);
 
@@ -41,3 +41,4 @@ public record CommitResponse(bool Committed, long NewSeq, IReadOnlyList<Conflict
         new(r.Committed, r.NewSeq, r.Conflicts.Select(c => new ConflictDto(c.Key, c.CurrentVersion)).ToList());
 }
 public record DiffResponse(IReadOnlyList<EntryDto> Entries, long NextSeq, bool HasMore);
+public record ChangesResponse(IReadOnlyList<EntryDto> Entries, DateTimeOffset NextSince, bool HasMore);

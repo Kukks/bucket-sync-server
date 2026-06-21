@@ -54,5 +54,8 @@ public class PostgresBucketStoreTests : BucketStoreContractTests
 
         public Task<DiffPage> DiffAsync(string bucketId, long sinceSeq, int limit, CancellationToken ct = default) =>
             _inner.DiffAsync(Map(bucketId), sinceSeq, limit, ct);
+
+        public Task<ChangesPage> ChangesSinceAsync(string bucketId, DateTimeOffset since, int limit, CancellationToken ct = default) =>
+            _inner.ChangesSinceAsync(Map(bucketId), since, limit, ct);
     }
 }

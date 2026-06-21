@@ -26,4 +26,5 @@ public record HealthResponse(string Status);
 [JsonSerializable(typeof(ConflictDto))]
 [JsonSerializable(typeof(CommitResponse))]
 [JsonSerializable(typeof(DiffResponse))]
+[JsonSerializable(typeof(ChangesResponse))]
 internal sealed partial class AppJsonContext : JsonSerializerContext;
